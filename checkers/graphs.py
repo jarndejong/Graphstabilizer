@@ -1,4 +1,4 @@
-from Quantumtools.graphs.elementary import AdjacencyMatrix
+from Graphstabilizer.graphs.elementary import AdjacencyMatrix
 from networkx.classes.graph import Graph as nxgraph
 
 def check_is_AdjacencyMatrixinstance(adj, raiseorFalse = 'raise'):

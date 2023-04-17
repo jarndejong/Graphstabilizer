@@ -7,14 +7,15 @@ Created on Tue Mar 16 13:58:49 2021
 
 ## Global imports
 from numpy import matrix as npmatrix
-from numpy import zeros as npzeros, eye as npeye, ones as npones, sum as npsum, shape as npshape, all as npall, any as npany
+from numpy import eye as npeye
+# from numpy import ones as npones, sum as npsum, shape as npshape, all as npall, any as npany
 
-from networkx import grid_2d_graph as nxgrid_2d_graph, read_edgelist as nxread_edgelist, Graph as nxGraph
+from networkx import grid_2d_graph as nxgrid_2d_graph, Graph as nxGraph
 
 ## Local imports
-from Quantumtools.graphs.elementary import AdjacencyMatrix
+from Graphstabilizer.graphs.elementary import AdjacencyMatrix
 
-from Quantumtools.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
+# from Graphstabilizer.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
     
 #%%
 def empty_graph(nr_nodes):

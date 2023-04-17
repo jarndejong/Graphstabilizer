@@ -2,8 +2,8 @@
 from networkx import from_numpy_array as nxfrom_numpy_array
 from networkx.classes.graph import Graph as nxgraph
 
-from Quantumtools.checkers.elementary import check_is_node_index, check_is_Boolvar
-from Quantumtools.checkers.graphs import check_are_nodelabels, check_are_nodepositions
+from Graphstabilizer.checkers.elementary import check_is_node_index, check_is_Boolvar
+from Graphstabilizer.checkers.graphs import check_are_nodelabels, check_are_nodepositions
 
 
 #%% Graph state class
@@ -14,13 +14,13 @@ class Graphstate:
     Initialize a graph state from an adjacency matrix, a stabilizer state or a networkXgraph.
     '''
     ### Init and string functions
-    # from Quantumtools.checkers.elementary import check_is_naturalnr, check_is_node_index, check_is_Boolvar
-    # from Quantumtools.checkers.Paulis import check_is_Paulistr
-    # from Quantumtools.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
+    # from Graphstabilizer.checkers.elementary import check_is_naturalnr, check_is_node_index, check_is_Boolvar
+    # from Graphstabilizer.checkers.Paulis import check_is_Paulistr
+    # from Graphstabilizer.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
     
     
     def __init__(self, graph = None, node_labels = None, node_positions = None):
-        from Quantumtools.graphs.elementary import AdjacencyMatrix    
+        from Graphstabilizer.graphs.elementary import AdjacencyMatrix    
         # Set adjacency_matrix to none, possibly overriding it later.
         self.adj = None
         
@@ -55,7 +55,7 @@ class Graphstate:
         '''
         if self.adj is not None:
             raise ValueError("Object instance already has adjacency matrix")
-        from Quantumtools.checkers.graphs import check_is_AdjacencyMatrixinstance    
+        from Graphstabilizer.checkers.graphs import check_is_AdjacencyMatrixinstance    
         check_is_AdjacencyMatrixinstance(adjacencymatrix)
 
         
@@ -69,8 +69,8 @@ class Graphstate:
         Only the adjecency matrix of the networkx graph is used.
         '''
         # Check validity of input
-        from Quantumtools.checkers.graphs import check_is_networkxinstance
-        from Quantumtools.states import AdjacencyMatrix
+        from Graphstabilizer.checkers.graphs import check_is_networkxinstance
+        from Graphstabilizer.states import AdjacencyMatrix
         check_is_networkxinstance(graph)
         
         # Init adjacency matrix
@@ -91,12 +91,12 @@ class Graphstate:
         Locally complement the graph (state) on the given node. Updates the object instance with the new graph.
         '''
         # Check validity of input
-        from Quantumtools.graphs.elementary import local_complementation
+        from Graphstabilizer.graphs.elementary import local_complementation
         node_index = self.__handle_nodeindex_param(node)
         
         self.adj = local_complementation(self.adj, node_index)
     
-    def neighbourhood(self, node):
+    def get_neighbourhood(self, node):
         '''
         Return a list of the neighbours of a node.
         Returns empty list if the node has no neighbours.
@@ -107,7 +107,15 @@ class Graphstate:
         adj_column = self.adj.matrix[:,node_index]
         
         return [index for index in range(self.nr_qubits) if adj_column[index] == 1]
-        
+    
+    def get_edges(self):
+        '''
+        Returns a list of the edges, where the edges are tuples of indices.
+        '''
+        if self.node_labels is not None:
+            return [(self.node_labels[i],self.node_labels[j]) for i in range(self.nr_qubits) for j in range(i,self.nr_qubits) if self.adj.matrix[i,j] == 1]
+        else:
+            return [(i,j) for i in range(self.nr_qubits) for j in range(i,self.nr_qubits) if self.adj.matrix[i,j] == 1]
         
     #%% Node label methods
     def retrieve_node_index(self, nodelabel):
@@ -132,10 +140,18 @@ class Graphstate:
         Return a networkxGraph from the graph associated with the graph state. Attributes also brought over are:
             - None
         '''
-        
         return nxfrom_numpy_array(self.adj.matrix)
     
-    ### Measurements and node deletions
+    def get_extreme_coordinates(self):
+        '''
+        Get the most outer coordinates in both x and y direction. Returns two lists:
+            x_lim: [min, max]
+            y_lin: [min, max]
+        '''
+        x, y = zip(*self.node_positions)
+        return [min(x), max(x)], [min(y), max(y)]
+    
+    #%% Measurements and node deletions
     def delete_node(self, node):
         '''
         Delete a node from a graph (state), by deleting both the row and the column from the adjacency matrix.
@@ -162,8 +178,8 @@ class Graphstate:
             deletion: delete the measured node or not; if not deleted is set to an isolated node. (Default True)
         If 'I' is given as a basis, no measurement is performed, irregardless of deletion is True or False the node is not deleted.
         '''
-        # from Quantumtools.checkers.elementary import check_is_naturalnr, check_is_node_index, check_is_Boolvar
-        from Quantumtools.checkers.Paulis import check_is_Paulistr
+        # from Graphstabilizer.checkers.elementary import check_is_naturalnr, check_is_node_index, check_is_Boolvar
+        from Graphstabilizer.checkers.Paulis import check_is_Paulistr
         # Check inputs
         check_is_Paulistr(basis)
         check_is_Boolvar(deletion)
@@ -213,7 +229,7 @@ class Graphstate:
         '''
         node_index = self.__handle_nodeindex_param(node)
         
-        neighbours = self.neighbourhood(node_index)
+        neighbours = self.get_neighbourhood(node_index)
         
         if len(neighbours) >= 1:
             self.local_complement(neighbours[0])

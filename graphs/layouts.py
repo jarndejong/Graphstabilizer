@@ -7,12 +7,13 @@ def oned_cluster(nr_nodes):
     '''
     return [(x, 0) for x in range(nr_nodes)]
 
-def twod_cluster(columns, rows):
+def twod_cluster(columns, rows, row_sep = 1, col_sep = 1):
     '''
     Returns a list of positions for a 2d grid layout.
+    Optionally provide the row separation and column separation between each pair of nodes.
     '''
-    x_coordinates = [x for x in range(columns)]
-    y_coordinates = [rows - 1 - y for y in range(rows)]
+    x_coordinates = [row_sep * x for x in range(columns)]
+    y_coordinates = [col_sep * (rows - 1 - y) for y in range(rows)]
     
     mesh = npmeshgrid(x_coordinates, y_coordinates)
     return list(zip(mesh[0].flatten(), mesh[1].flatten()))

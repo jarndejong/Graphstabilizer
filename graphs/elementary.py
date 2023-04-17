@@ -8,9 +8,9 @@ Created on Tue Mar 16 13:58:41 2021
 ## Global imports
 from numpy import outer as npouter, diagflat as npdiagflat, zeros_like as npzeros_like, diag as npdiag
 from numpy import ones_like as npones_like, matrix as npmatrix, ndarray as npndarray
-from numpy import all as npall, logical_and as nplogical_and, logical_or as nplogical_or
-from numpy import matrix as npmatrix, ndarray as npndarray
-from numpy import delete as npdel, where as npwhere
+from numpy import all as npall, logical_or as nplogical_or, delete as npdel
+# from numpy import matrix as npmatrix, ndarray as npndarray, logical_and as nplogical_and,
+# from numpy import where as npwhere
 
 from networkx import adjacency_matrix as nxadjacency_matrix, Graph as nxGraph
 
@@ -24,10 +24,10 @@ class AdjacencyMatrix:
     The input graphy can either be a networkx graph or a square numpy array or matrix.
     '''
     def __init__(self, graph):
-        from Quantumtools.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
+        # from Graphstabilizer.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
 
         # Check if matrix is already AdjacencyMatrix object
-        if str(type(graph)) == 'Quantumtools.graphs.elementary.AdjacencyMatrix':
+        if str(type(graph)) == 'Graphstabilizer.graphs.elementary.AdjacencyMatrix':
             self.matrix = graph.matrix
             self.shape = graph.shape
             self.size = graph.size
@@ -69,7 +69,7 @@ class AdjacencyMatrix:
         '''
         Deletes a node from the matrix.
         '''
-        from Quantumtools.checkers.elementary import check_is_node_index
+        from Graphstabilizer.checkers.elementary import check_is_node_index
         
         check_is_node_index(self.size, node)
         
