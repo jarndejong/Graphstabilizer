@@ -9,21 +9,21 @@ from math import copysign, tan, atan, sin, sqrt, pi
 #%%
 
 graphstyle = {
-    'with_labels'           : True,
-    'node_radius'           : 0.15,
-    'node_color'             : 'k',
-    'node_edgecolor'         : 'w',
-    'node_edgewidth'         : 2,
-    'label_color'            : 'w',
-    'edge_color'              : 'w',
-    'edge_width'              : 2,
-    'edge_offset'           : 0.15,
-    'edge_fontsize'         : 16,
-    'tex_for_labels'        : True,
-    'figure_multiplier'     : 2,
-    'figure_tightness'      : 0.1,
-    'figure_offsetequal'    : True,
-    'background_color'      : 'k',
+    'with_labels'               : True,
+    'node_radius'               : 0.15,
+    'node_color'                : 'k',
+    'node_edgecolor'            : 'w',
+    'node_edgewidth'            : 2,
+    'label_color'               : 'w',
+    'edge_color'                : 'w',
+    'edge_width'                : 2,
+    'edge_offset'               : 0.2,
+    'edge_fontsize'             : 16,
+    'tex_for_labels'            : True,
+    'figure_multiplier'         : 2,
+    'figure_tightness'          : 0.1,
+    'figure_offsetequal'        : True,
+    'background_color'          : 'k',
     }
 #%% Init functions
 def calculate_axes_limits(xminmax, yminmax, node_radius, tightness = 0.05, equaloffset = True):
@@ -66,8 +66,16 @@ def prepare_graphstatedrawing(Graphstate, graphstyle, axislimits = None, figure_
     fig = figure(figsize = (figure_multiplier*(xlim[1] - xlim[0]), figure_multiplier*(ylim[1] - ylim[0])))
 
     axis = fig.add_subplot(111)
-
+    print(xlim, ylim)
+    
     axis.set(xlim=xlim, ylim=ylim, aspect=1)
+    axis.axis('off')
+    # axis.set(xlim=xlim, ylim=ylim)
+
+    axis.margins(x=0, y=0)
+    
+    # fig.bbox = 'tight'
+    fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
     
     # Set the background color
     fig.patch.set_facecolor(graphstyle['background_color'])
