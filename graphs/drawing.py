@@ -63,19 +63,19 @@ def prepare_graphstatedrawing(Graphstate, graphstyle, axislimits = None, figure_
     # Unpack the axis limits
     xlim, ylim = axislimits[0], axislimits[1]
     
+    # Make figure
     fig = figure(figsize = (figure_multiplier*(xlim[1] - xlim[0]), figure_multiplier*(ylim[1] - ylim[0])))
-
+    
+    # Add the axis and set the params
     axis = fig.add_subplot(111)
-    print(xlim, ylim)
     
     axis.set(xlim=xlim, ylim=ylim, aspect=1)
     axis.axis('off')
-    # axis.set(xlim=xlim, ylim=ylim)
+
 
     axis.margins(x=0, y=0)
     
-    # fig.bbox = 'tight'
-    fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
+    # fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
     
     # Set the background color
     fig.patch.set_facecolor(graphstyle['background_color'])
@@ -140,8 +140,15 @@ def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None
     '''
     # Get indices instead of labels
     if Graphstate.node_labels is not None:
-        # Update the edge to have the labels instead of the indices as the entries
+        # Update the edge to have the indices instead of the labels as the entries
         edge = (Graphstate.node_labels.index(edge[0]), Graphstate.node_labels.index(edge[1]))
+    
+    # Get the indices of all the nodes that are not in the current edge
+    other_nodes = list(range(Graphstate.nr_qubits))
+    other_nodes.pop(max(edge))
+    other_nodes.pop(min(edge))
+    
+    other_nodes_positions = [Graphstate.node_positions[index] for index in other_nodes]
     
     # Get the vectors of the two nodes of the edge
     x1 = mat(Graphstate.node_positions[edge[0]]).T
@@ -162,7 +169,7 @@ def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None
     # Now check if a straight edge can be made, or otherwise plot an arc
     else:
         # Check if any nodes intersect with the straight edge    
-        if not _do_nodes_intersect_straightedge(Graphstate.node_positions, phat, pd, x1, graphstyle['node_radius']):
+        if not _do_nodes_intersect_straightedge(other_nodes_positions, phat, pd, x1, graphstyle['node_radius']):
             # Now we can plot a straight edge
             # Calculate the two points to draw the line from and to
             # These are the node positions adjusted by the offset given in the graphstyle, i.e. x1 and x2 plys/minus phat for the offset length
@@ -190,7 +197,7 @@ def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None
                                                                       offset = graphstyle['edge_offset'])
                 
                 # Check if no nodes intersect with the arcedge
-                if not _do_nodes_intersects_arcedge(Graphstate.node_positions, xr, yr, r, theta1, theta2, graphstyle, anglecoor = 'deg'):
+                if not _do_nodes_intersects_arcedge(other_nodes_positions, xr, yr, r, theta1, theta2, graphstyle, anglecoor = 'deg'):
                     # Make the edge with the current circle params of the arc if the if statement passes
                     arc = Arc((xr,yr), width = 2*r, height = 2*r, 
                                         theta1=theta1, theta2=theta2, color = graphstyle['edge_color'], linewidth = graphstyle['edge_width'])
