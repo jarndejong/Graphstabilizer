@@ -57,18 +57,52 @@ def circular_tree(nr_layers, branch_factor = 2, layer_distance = 1):
     G = balanced_tree(branch_factor, nr_layers)
     return nx_agraph.graphviz_layout(G, prog="twopi", args="")
 
-def radial_out(nr_rays, nodes_per_ray):
+def radial_out(nr_rays, nodes_per_ray, node_dist = 1, offset_angle = 0, direction = 'clockwise'):
     '''
     Return a list of positions where all nodes are positioned along rays going outwards from the middle.
     One node is in the middle, and then all nodes are radially going outwards, 
     where every ray is completely filled, and then the next one is started.
+    The nodes on one ray are distance node_dist from each other apart.
+    The offset_angle is the angle (in radians) that the first ray makes with the x-axis.
+    The direction is either 'clockwise' or 'anti-clockwise'.
     '''
-    angles = nplinspace(0,2*nppi, num = nr_rays, endpoint = False)
+    
+    angles = nplinspace(offset_angle, 2*nppi + offset_angle, num = nr_rays, endpoint = False)
+    if direction == 'clockwise':
+        angles = nplinspace(2*nppi + offset_angle, offset_angle, num = nr_rays, endpoint = False)
+
     
     positions = [(0,0)]
     
     for angle in angles:
-        positions.extend([(dist*npcos(angle),dist*npsin(angle)) for dist in range(1,nodes_per_ray+1)])
+        positions.extend([(node_dist*dist*npcos(angle),node_dist*dist*npsin(angle)) for dist in range(1,nodes_per_ray+1)])
     
     return positions
-        
+
+def star(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
+    '''
+    Get the star graph, with one node in the middle
+    and all other nodes equidistant from each other on a circle with the given radius centered around the middle node.
+    '''
+    return radial_out(nr_nodes - 1, 1, radius, offset_angle, direction)
+
+def ring(nr_qubits, radius = 1, offset_angle = 0, direction = 'clockwise'):
+    '''
+    Return a list of positions where all nodes are on a ring or circle around the origin with the given radius. The nodes are all equally distant from each other.
+    The offset_angle is the angle (in radians) that the first node makes with the x-axis.
+    '''
+    
+    pos = radial_out(nr_rays = nr_qubits, nodes_per_ray = 1, node_dist = radius, offset_angle = offset_angle, direction = direction)
+    
+    return pos[1:]
+
+
+
+def cut_ring(nr_qubits, radius = 1, nr_holes = 1, start_of_cut_angle = 0, direction = 'clockwise'):
+    '''
+    Return a list of positions where all nodes are on a ring or circle around the origin with the given radius.
+    '''
+    pos = ring(nr_qubits + nr_holes, offset_angle = start_of_cut_angle, direction = direction)
+    
+    return pos[nr_holes:]
+    

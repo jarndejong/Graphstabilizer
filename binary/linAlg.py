@@ -129,8 +129,13 @@ def get_nullspace_basis(M, get_pivs = False):
     else:
         return basis
 
-
-
+def get_rank(M):
+    '''
+    Get the rank of the matrix. Takes in a binary matrix, and computes the (binary) rank as the number of pivot columns.
+    Return the matrix rank as a natural number
+    '''
+    return len(get_echelon(M)[1])
+    
 
 #%% Helper functions
 def _swap_rows(M, index_1, index_2):

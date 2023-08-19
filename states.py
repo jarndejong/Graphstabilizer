@@ -5,7 +5,7 @@ from networkx.classes.graph import Graph as nxgraph
 from Graphstabilizer.checkers.elementary import check_is_node_index, check_is_Boolvar
 from Graphstabilizer.checkers.graphs import check_are_nodelabels, check_are_nodepositions
 
-
+from Graphstabilizer.graphs.graphstyles import blackonwhite
 #%% Graph state class
 class Graphstate:
     '''
@@ -19,7 +19,7 @@ class Graphstate:
     # from Graphstabilizer.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
     
     
-    def __init__(self, graph = None, node_labels = None, node_positions = None):
+    def __init__(self, graph = None, node_labels = None, node_positions = None, graphstyle = None):
         from Graphstabilizer.graphs.elementary import AdjacencyMatrix    
         # Set adjacency_matrix to none, possibly overriding it later.
         self.adj = None
@@ -32,7 +32,8 @@ class Graphstate:
             self.init_from_stabilizer_state(graph)
         elif type(graph) is nxgraph:
             self.init_from_networkx_graph(graph)
-            
+        else: raise ValueError(f"Please provide either an adjacency matrix, a STabilizerState or a networkXgraph. This was provided instead: {type(graph)}")
+        
         # Handling of node labels
         if not node_labels is None:
             check_are_nodelabels(self.nr_qubits, node_labels)
@@ -42,7 +43,11 @@ class Graphstate:
         if not node_positions is None:
             check_are_nodepositions(self.nr_qubits, node_positions)
         self.node_positions = node_positions
-    
+        
+        # Set the graphstyle, if none is passed, set the standard blackonwhite
+        if graphstyle == None:
+            graphstyle = blackonwhite
+        self.graphstyle = graphstyle
     
     def __str__(self):
         return f'Graph state of {self.nr_qubits} qubits.'
@@ -96,6 +101,7 @@ class Graphstate:
         
         self.adj = local_complementation(self.adj, node_index)
     
+    #%% Info functions    
     def get_neighbourhood(self, node):
         '''
         Return a list of the neighbours of a node.
@@ -116,13 +122,29 @@ class Graphstate:
             return [(self.node_labels[i],self.node_labels[j]) for i in range(self.nr_qubits) for j in range(i,self.nr_qubits) if self.adj.matrix[i,j] == 1]
         else:
             return [(i,j) for i in range(self.nr_qubits) for j in range(i,self.nr_qubits) if self.adj.matrix[i,j] == 1]
-        
+    
+    @property
+    def nr_edges(self):
+        '''
+        Returns the number of edges in the graph.
+        '''
+        return len(self.get_edges())
+    
+    @property
+    def nr_nodes(self):
+        '''
+        Returns the number of nodes in the graph, which is the same as the nr of qubits in the graph state.
+        '''
+        return self.nr_qubits
+    
+    
     #%% Node label methods
     def retrieve_node_index(self, nodelabel):
         '''
         Retrieve the (current) index of the node associated with the node label.
         '''
         return self.node_labels.index(nodelabel)
+    
     
     #%% Drawing methods
     def labels_to_graphx_format(self):
@@ -144,12 +166,34 @@ class Graphstate:
     
     def get_extreme_coordinates(self):
         '''
-        Get the most outer coordinates in both x and y direction. Returns two lists:
+        Get the outermost coordinates of the nodes in both x and y direction. Returns two lists:
             x_lim: [min, max]
             y_lin: [min, max]
         '''
         x, y = zip(*self.node_positions)
         return [min(x), max(x)], [min(y), max(y)]
+    
+    def get_extreme_node_indices(self) -> [list, list]:
+        '''
+        Get the indices of the outermost nodes in both x and y direction. Returns two lists:
+            x_index: [xminindex, xmaxindex]
+            y_index: [yminindex, ymaxindex]
+            
+            where xminindex is the index of the nodes with the lowest x coordinate
+        '''
+        x, y = zip(*self.node_positions)
+        return [x.index(min(x)), x.index(max(x))], [y.index(min(y)), y.index(max(y))]
+    
+    def get_node_positions_and_radii(self, selection) -> list:
+        '''
+        Get the positions for a given selection of nodes.
+        Always returns a list, even if only one node given.
+        '''
+        node_positions = []
+        
+        for node in selection:
+            check_is_node_index(self, node)
+            node_positions.append()
     
     #%% Measurements and node deletions
     def delete_node(self, node):
@@ -240,12 +284,18 @@ class Graphstate:
         else:
             self.Y_measurement(node_index, deletion)
             
-    def multiple_measurements(self, bases: list, nodes: list, deletion = True):
+    def multiple_measurements(self, measurement_setting: list, deletion = True):
         '''
         Perform multiple measurements on the graph state in Pauli bases.
         Measurements are performed in order of the list.
+        The measurement setting list is a list of tuples (node, basis)
         '''
-        pass
+        assert len(measurement_setting) <= self.nr_nodes, "Warning, too many nodes provided to measure."
+        
+        sorted_measurements = sorted(measurement_setting, key = lambda x: x[0], reverse = True)
+        
+        for measured_node, basis in sorted_measurements:
+            self.single_measurement(basis = basis, node = measured_node, deletion = deletion)
     
     #### Internal functions
     def __handle_nodeindex_param(self, node):

@@ -23,9 +23,7 @@ def check_is_node_index(size, node, raiseorFalse = 'raise'):
     Checks if the node index is in the allowed range, or of it's a list of valid indices.
     
     raiseorFalse is 'raise' or 'false' and decides if the function throws an exception or if it returns false.
-    '''
-    if not (raiseorFalse == 'raise') or (raiseorFalse == 'false'):
-        raise ValueError(f"Input {raiseorFalse} should be either 'raise' or 'false'.")
+    '''    
     
     # Iteratively go through all in list if list
     if type(node) is list:
@@ -44,6 +42,8 @@ def check_is_node_index(size, node, raiseorFalse = 'raise'):
         if node < 0 or node >= size:
             return False
         else: return True
+    else:
+        raise ValueError(f"Input raisorFalse is {raiseorFalse}, it should be either 'raise' or 'false'.")
     
 def check_is_Boolvar(boolvar, raiseorFalse = 'raise'):
     '''

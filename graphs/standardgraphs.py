@@ -6,7 +6,7 @@ Created on Tue Mar 16 13:58:49 2021
 """
 
 ## Global imports
-from numpy import matrix as npmatrix
+from numpy import matrix as npmatrix, zeros as npzeros, ones as npones
 from numpy import eye as npeye
 # from numpy import ones as npones, sum as npsum, shape as npshape, all as npall, any as npany
 
@@ -22,7 +22,8 @@ def empty_graph(nr_nodes):
     '''
     Get the adjacency matrix for an empty graph, i.e. the all-zeros matrix.
     '''
-    return 
+    adjmatrix = npmatrix(npzeros((nr_nodes,nr_nodes), dtype = int))
+    return AdjacencyMatrix(adjmatrix)
 
 
 def twod_cluster(r, c = None):
@@ -56,6 +57,12 @@ def linear_cluster(nr_nodes):
     
     return AdjacencyMatrix(adjmatrix)
 
+def line(nr_nodes):
+    '''
+    Get the adjacency matrix of a line graph with nr_qubits nodes. Same as linear_cluster.
+    '''
+    return linear_cluster(nr_nodes)
+    
 def ring(nr_nodes):
     '''
     Get the adjacency matrix of a ring graph with nr_nodes nodes.
@@ -97,13 +104,33 @@ def radial_out(nr_rays, nodes_per_ray):
         for node_nr in range(nodes_per_ray - 1):
             edges.append((nodes_this_ray[node_nr],nodes_this_ray[node_nr+1]))
     
-    print(edges)    
     
     nxG = nxGraph()
     
     nxG.add_edges_from([(edge[0],edge[1]) for edge in edges])
     
     return AdjacencyMatrix(nxG)
+
+def star(nr_nodes):
+    '''
+    Get the star graph, where the first node is connected to all other nodes, 
+    and all other nodes are connected to only the first node.
+    '''
+    return radial_out(nr_nodes - 1, 1)
+
+def complete(nr_nodes):
+    '''
+    Get the complete graph on nr_nodes nodes.
+    '''
+    adjmatrix = npmatrix(npones(shape = (nr_nodes, nr_nodes), dtype = 'int') - npeye(nr_nodes, dtype = 'int'))
+    
+    return AdjacencyMatrix(adjmatrix)
+
+def GHZ(nr_nodes):
+    '''
+    See complete graph.
+    '''
+    return complete(nr_nodes)
 
 # def get_ring_adjecency(nr_qubits):
 #     '''

@@ -7,7 +7,7 @@ Created on Tue Mar 16 13:58:41 2021
 
 ## Global imports
 from numpy import outer as npouter, diagflat as npdiagflat, zeros_like as npzeros_like, diag as npdiag
-from numpy import ones_like as npones_like, matrix as npmatrix, ndarray as npndarray
+from numpy import ones_like as npones_like, matrix as npmatrix, ndarray as npndarray, zeros as npzeros
 from numpy import all as npall, logical_or as nplogical_or, delete as npdel
 # from numpy import matrix as npmatrix, ndarray as npndarray, logical_and as nplogical_and,
 # from numpy import where as npwhere
@@ -103,6 +103,31 @@ def local_complementation(A: AdjacencyMatrix, node: int):
     
     # Create new instance of AdjacencyMatrix
     return AdjacencyMatrix(new_adjacency)
+
+#%%
+def get_AdjacencyMatrix_from_edgelist(nr_nodes: int, edge_list: list):
+    '''
+    Obtain an adjacency matrix for the graph with the given number of nodes and the given list of edges.
+    '''
+    from Graphstabilizer.checkers.elementary import check_is_naturalnr
+    from Graphstabilizer.checkers.elementary import check_is_node_index
+    
+    check_is_naturalnr(nr_nodes)
+    
+    adjmatrix = npmatrix(npzeros(shape = (nr_nodes, nr_nodes), dtype = 'int64'))
+    
+    # Loop through every entry in the edge list
+    for edge in edge_list:
+        assert (type(edge) == list) or (type(edge) == tuple), f"Warning, edge {edge} is not of type list or tuple, but {type(edge)}."
+        assert len(edge) == 2, f"Warning, edge {edge} has {len(edge)} entries instead of 2."
+        for node in edge:
+            check_is_node_index(nr_nodes, node)
+        adjmatrix[edge[0],edge[1]] = 1
+        adjmatrix[edge[1],edge[0]] = 1
+    
+    return AdjacencyMatrix(adjmatrix)
+
+
 
 # def apply_complementations(state, local_complementations_list):
 #     '''

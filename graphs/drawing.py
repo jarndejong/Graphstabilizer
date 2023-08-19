@@ -2,69 +2,110 @@
 # from netorkx imporxt draw_nodes
 from matplotlib.patches import Circle, Arc
 from matplotlib.pyplot import figure
-from numpy import mat
+from numpy import array, matrix, inner, sin, cos, arccos, concatenate, linspace, rad2deg, ceil
+from scipy.spatial import ConvexHull
 from numpy.linalg import norm
 from math import copysign, tan, atan, sin, sqrt, pi
 
 #%%
 
-graphstyle = {
-    'with_labels'               : True,
-    'node_radius'               : 0.15,
-    'node_color'                : 'k',
-    'node_edgecolor'            : 'w',
-    'node_edgewidth'            : 2,
-    'label_color'               : 'w',
-    'edge_color'                : 'w',
-    'edge_width'                : 2,
-    'edge_offset'               : 0.2,
-    'edge_fontsize'             : 16,
-    'tex_for_labels'            : True,
-    'figure_multiplier'         : 2,
-    'figure_tightness'          : 0.1,
-    'figure_offsetequal'        : True,
-    'background_color'          : 'k',
-    }
 #%% Init functions
-def calculate_axes_limits(xminmax, yminmax, node_radius, tightness = 0.05, equaloffset = True):
+# def calculate_axes_limits(xminmax, yminmax, node_radius, tightness = 0.05, equaloffset = True):
+#     '''
+#     Calculate x and y axes limits for a graph picture from the x and y min and max coordinates.
+#     The limits are calculated as such:
+#         For x, let d be the distance from max to min.
+#         Then the limits are the xmin and xmax minus cq. plus the offset, and similarly for y
+#         The offset is node_radius + tightness*d
+        
+#     If equaloffset = True, the offset for both x and y is set to the max of the two
+#     '''
+#     lims = []
+#     offsets = []
+#     for coor in (xminmax, yminmax):
+#         d = coor[1] - coor[0] + 2*node_radius
+#         offsets.append(node_radius + tightness*d)
+            
+#     for index, coor in enumerate((xminmax, yminmax)):
+#         if equaloffset:
+#             lims.append([coor[0] - max(offsets[0], offsets[1]), coor[1] + max(offsets[0], offsets[1])])
+#         else:
+#             lims.append([coor[0] - offsets[index], coor[1] + offsets[index]])
+#     return lims
+
+def calculate_axes_limits(Graphstate):
     '''
     Calculate x and y axes limits for a graph picture from the x and y min and max coordinates.
     The limits are calculated as such:
         For x, let d be the distance from max to min.
-        Then the limits are the xmin and xmax minus cq. plus the offset, and similarly for y
-        The offset is node_radius + tightness*d
+        Then the limits are the xmin - xleftoffset and xmax + xrightoffset, where the offset is the radius of the node in question + tightness*d
+        
+        For y it works similarly
         
     If equaloffset = True, the offset for both x and y is set to the max of the two
     '''
-    lims = []
+    
+    
+    # Get the coordinates of the extreme nodes
+    minmaxes = Graphstate.get_extreme_coordinates()
+    
+    # Get the indices of these nodes
+    [xleft, xright], [yleft, yright] = Graphstate.get_extreme_node_indices()
+    
+    # Check if the node radius is defined for all nodes equally or for every node separately
+    nodesstyle = Graphstate.graphstyle['nodes_style']
+    
+    if type(nodesstyle) == dict:
+        noderadii = [[nodesstyle['node_radius']] * 2] * 2
+    elif type(nodesstyle) == list:
+        noderadii = [
+            [nodesstyle[xleft]['node_radius'], nodesstyle[xright]['node_radius']],
+            [nodesstyle[yleft]['node_radius'], nodesstyle[yright]['node_radius']]
+                    ]
+    
+    # Calculate the offsets first
     offsets = []
-    for coor in (xminmax, yminmax):
-        d = coor[1] - coor[0] + 2*node_radius
-        offsets.append(node_radius + tightness*d)
-            
-    for index, coor in enumerate((xminmax, yminmax)):
-        if equaloffset:
-            lims.append([coor[0] - max(offsets[0], offsets[1]), coor[1] + max(offsets[0], offsets[1])])
-        else:
-            lims.append([coor[0] - offsets[index], coor[1] + offsets[index]])
+    for coor, coorradii in zip(minmaxes,noderadii):
+        d = coor[1] - coor[0] + coorradii[0] + coorradii[1]
+
+        offsets.append((coorradii[0] + Graphstate.graphstyle['figure_style']['figure_tightness']*d, coorradii[1] + Graphstate.graphstyle['figure_style']['figure_tightness']*d))
+    
+    
+    if Graphstate.graphstyle['figure_style']['figure_offsetequal']:
+        offsets = [[max(max(offsets[0]), max(offsets[1]))] * 2] * 2
+    
+    
+
+    lims = [] 
+    
+    for coor, offset in zip(minmaxes, offsets):
+        lims.append([coor[0] - offset[0], coor[1] + offset[1]])
+        
+    if Graphstate.graphstyle['figure_style']['figure_square']:
+        
+        lims = [[min(lims[0] + lims[1]), max(lims[0] + lims[1])]] * 2
+        
     return lims
 
-def prepare_graphstatedrawing(Graphstate, graphstyle, axislimits = None, figure_multiplier = 1):
+#%% Preparation    
+def prepare_graphstatedrawing(Graphstate):
     '''
     Prepare a Graphstate figure.
     Return a figure and an axis object
     '''
     # If no axislimits are given, calculate them
+    axislimits = Graphstate.graphstyle['figure_style']['axes_limits']
+    
     if axislimits is None:
-        xminmax, yminmax = Graphstate.get_extreme_coordinates()
+        axislimits = calculate_axes_limits(Graphstate)
 
-        axislimits = calculate_axes_limits(xminmax, yminmax, graphstyle['node_radius'], tightness = graphstyle['figure_tightness'], equaloffset = graphstyle['figure_offsetequal'])
-        
     # Unpack the axis limits
     xlim, ylim = axislimits[0], axislimits[1]
     
     # Make figure
-    fig = figure(figsize = (figure_multiplier*(xlim[1] - xlim[0]), figure_multiplier*(ylim[1] - ylim[0])))
+    fig = figure(figsize = (Graphstate.graphstyle['figure_style']['figure_multiplier']*(xlim[1] - xlim[0]), 
+                            Graphstate.graphstyle['figure_style']['figure_multiplier']*(ylim[1] - ylim[0]))
+                 )
     
     # Add the axis and set the params
     axis = fig.add_subplot(111)
@@ -78,41 +119,234 @@ def prepare_graphstatedrawing(Graphstate, graphstyle, axislimits = None, figure_
     # fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
     
     # Set the background color
-    fig.patch.set_facecolor(graphstyle['background_color'])
-    axis.patch.set_facecolor(graphstyle['background_color'])
+    fig.patch.set_facecolor(Graphstate.graphstyle['figure_style']['background_color'])
+    axis.patch.set_facecolor(Graphstate.graphstyle['figure_style']['background_color'])
+    
+    if Graphstate.graphstyle['figure_style']['figure_title'] is not None:
+        axis.set_title(**Graphstate.graphstyle['figure_style']['figure_title'])
 
     
     return fig, axis
 
-def draw_nodes(Graphstate, axis, graphstyle):
+def prepare_multiple_graphstatedrawing(Graphstates: list, nr_rows = None, nr_columns = None, figure_multiplier = None, background_color = None, fill_order = 'row', gridspec_mapping = None):
+    '''
+    Prepare a figure with multiple sublots for drawings.
+    Returns a figure and a list of axes.
+    '''
+    
+    # Determine number of rows and columns
+    nr_drawings = len(Graphstates)
+    if nr_rows is None and nr_columns is None:
+        if gridspec_mapping is not None:
+            raise ValueError("When providing a gridspec mapping, please manually provide at least a nr of rows or nr_columns")
+        from math import ceil
+        nr_columns = ceil(nr_drawings**(1/2))
+        nr_rows = ceil(nr_drawings/nr_columns)
+    elif nr_rows is None:
+        print(nr_columns)
+        from math import ceil
+        nr_rows = ceil(nr_drawings/nr_columns)
+        print(nr_rows)
+    elif nr_columns is None:
+        from math import ceil
+        nr_columns = ceil(nr_drawings/nr_rows)
+    # Determine figure multiplier
+    if figure_multiplier is None:
+        figure_multiplier = 3
+    
+    # Determine background color
+    if background_color is None:
+        background_color = Graphstates[0].graphstyle['figure_style']['background_color']
+    
+    assert fill_order == 'row' or fill_order == 'column', f"Provide either 'row' or 'column' as a filling order, not {fill_order}."
+    
+    # Prepare the grid
+    from matplotlib.gridspec import GridSpec
+    
+    gs = GridSpec(nr_rows, nr_columns)
+    
+    # Prepare figure
+    fig = figure(figsize = (figure_multiplier * nr_columns, figure_multiplier * nr_rows))
+    
+        
+    fig.patch.set_facecolor(background_color)
+    
+    
+    
+    
+    axes = []
+    
+    if gridspec_mapping is None:
+        graphstate_index = 0
+        if fill_order == 'column':
+            for col_nr in range(nr_columns):
+                for row_nr in range(nr_rows):
+                    
+                    
+                    axis = fig.add_subplot(gs[row_nr, col_nr])
+                    
+                    # If no axislimits are given, calculate them
+                    axeslimits = Graphstates[graphstate_index].graphstyle['figure_style']['axes_limits']
+                    
+                    if axeslimits is None:
+                        axeslimits = calculate_axes_limits(Graphstates[graphstate_index])
+
+                    # Unpack the axis limits
+                    xlim, ylim = axeslimits[0], axeslimits[1]
+                    
+                    axis.set(xlim=xlim, ylim=ylim, aspect=1)
+                    axis.axis('off')
+                    
+                    axis.patch.set_facecolor(Graphstates[graphstate_index].graphstyle['figure_style']['background_color'])
+                    
+                    axes.append(axis)
+                    
+                    graphstate_index += 1
+                    
+                    if graphstate_index == len(Graphstates):
+                        return fig, axes
+        if fill_order == 'row':
+            
+            for row_nr in range(nr_rows):
+                for col_nr in range(nr_columns):
+                    
+                    
+                    axis = fig.add_subplot(gs[row_nr, col_nr])
+                    
+                    # If no axislimits are given, calculate them
+                    axeslimits = Graphstates[graphstate_index].graphstyle['figure_style']['axes_limits']
+                    
+                    if axeslimits is None:
+                        axeslimits = calculate_axes_limits(Graphstates[graphstate_index])
+
+                    # Unpack the axis limits
+                    xlim, ylim = axeslimits[0], axeslimits[1]
+                    
+                    axis.set(xlim=xlim, ylim=ylim, aspect=1)
+                    axis.axis('off')
+                    
+                    axis.patch.set_facecolor(Graphstates[graphstate_index].graphstyle['figure_style']['background_color'])
+                    
+                    axes.append(axis)
+                    
+                    graphstate_index += 1
+                    
+                    if graphstate_index == len(Graphstates):
+                        return fig, axes
+    else:
+        for graphstate, mapping in zip(Graphstates, gridspec_mapping):
+            axis = fig.add_subplot(gs[mapping[0], mapping[1]])
+            
+            # If no axislimits are given, calculate them
+            axeslimits = Graphstates[graphstate_index].graphstyle['figure_style']['axes_limits']
+            
+            if axeslimits is None:
+                axeslimits = calculate_axes_limits(Graphstates[graphstate_index])
+
+            # Unpack the axis limits
+            xlim, ylim = axeslimits[0], axeslimits[1]
+            
+            axis.set(xlim=xlim, ylim=ylim, aspect=1)
+            axis.axis('off')
+            
+            axis.patch.set_facecolor(Graphstates[graphstate_index].graphstyle['figure_style']['background_color'])
+            
+            axes.append(axis)
+                   
+                    
+    return fig, axes
+        
+# def prepare_graphstatesdrawing(Graphstates_list, graphstyle, axislimits = None, figure_multiplier = 1, nr_rows = None, nr_cols = None):
+#     '''
+#     Prepare a Graphstate figure.
+#     Return a figure and an axis object
+#     '''
+#     # If no axislimits are given, calculate them
+#     if axislimits is None:
+#         xminmax, yminmax = Graphstate.get_extreme_coordinates()
+
+#         axislimits = calculate_axes_limits(xminmax, yminmax, graphstyle['node_radius'], tightness = graphstyle['figure_tightness'], equaloffset = graphstyle['figure_offsetequal'])
+        
+#     # Unpack the axis limits
+#     xlim, ylim = axislimits[0], axislimits[1]
+    
+#     # Make figure
+#     fig = figure(figsize = (figure_multiplier*(xlim[1] - xlim[0]), figure_multiplier*(ylim[1] - ylim[0])))
+    
+#     # Add the axis and set the params
+#     axis = fig.add_subplot(111)
+    
+#     axis.set(xlim=xlim, ylim=ylim, aspect=1)
+#     axis.axis('off')
+
+
+#     axis.margins(x=0, y=0)
+    
+#     # fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
+    
+#     # Set the background color
+#     fig.patch.set_facecolor(graphstyle['background_color'])
+#     axis.patch.set_facecolor(graphstyle['background_color'])
+
+    
+#     return fig, axis
+#%% Nodes
+def draw_nodes(Graphstate, axis):
     '''
     Draw the nodes of the Graphstate in the given axis.
+    The graphstyle is either a dictionary for instructions on how to draw the nodes, or a list of dictionaries on how to draw every node separately.
     '''
     labels = Graphstate.node_labels
     if labels is None:
         labels = [f'{i}' for i in range(Graphstate.nr_qubits)]
-    # Plot every node iteratively
-    for node_index, position in enumerate(Graphstate.node_positions):
-        # Make a circle at the node position
-        circle = Circle(position, radius = graphstyle['node_radius'], 
-                        facecolor = graphstyle['node_color'], 
-                        edgecolor = graphstyle['node_edgecolor'],
-                        linewidth = graphstyle['node_edgewidth'])
         
-        # Add the node to the axis
-        axis.add_patch(circle)
-        
-        # Make the label if the graphstyle wants it
-        if graphstyle['with_labels']:
-            axis.text(x = position[0], y = position[1], 
-                      s = labels[node_index], 
-                      fontsize = graphstyle['edge_fontsize'],
-                      ha="center",
-                      va="center_baseline", 
-                      usetex = graphstyle['tex_for_labels'], 
-                      color = graphstyle['label_color'])
+    nodesstyle = Graphstate.graphstyle['nodes_style']
+    if type(nodesstyle) == dict:
+        # Plot every node iteratively
+        for node_index, position in enumerate(Graphstate.node_positions):
+            # Make a circle at the node position
+            circle = Circle(position, radius = nodesstyle['node_radius'], 
+                            facecolor = nodesstyle['node_color'], 
+                            edgecolor = nodesstyle['node_edgecolor'],
+                            linewidth = nodesstyle['node_edgewidth'])
+            
+            # Add the node to the axis
+            axis.add_patch(circle)
+            
+            # Make the label if the graphstyle wants it
+            if nodesstyle['with_labels']:
+                axis.text(x = position[0], y = position[1], 
+                          s = labels[node_index], 
+                          fontsize = nodesstyle['label_fontsize'],
+                          ha="center",
+                          va="center_baseline", 
+                          usetex = nodesstyle['tex_for_labels'], 
+                          color = nodesstyle['label_color'])
+    elif type(nodesstyle) == list:
+        assert len(nodesstyle) == Graphstate.nr_qubits, f"Graph style has instructions for {len(nodesstyle)} nodes but graphstate has {Graphstate.nr_qubits} nodes."
+        # Plot every node iteratively
+        for node_index, position in enumerate(Graphstate.node_positions):
+            # Make a circle at the node position
+            circle = Circle(position, radius = nodesstyle[node_index]['node_radius'], 
+                            facecolor = nodesstyle[node_index]['node_color'], 
+                            edgecolor = nodesstyle[node_index]['node_edgecolor'],
+                            linewidth = nodesstyle[node_index]['node_edgewidth'])
+            
+            # Add the node to the axis
+            axis.add_patch(circle)
+            
+            # Make the label if the graphstyle wants it
+            if nodesstyle[node_index]['with_labels']:
+                axis.text(x = position[0], y = position[1], 
+                          s = labels[node_index], 
+                          fontsize = nodesstyle[node_index]['label_fontsize'],
+                          ha="center",
+                          va="center_baseline", 
+                          usetex = nodesstyle[node_index]['tex_for_labels'], 
+                          color = nodesstyle[node_index]['label_color'])
 
-def draw_edges(Graphstate, axis, graphstyle, edgesmap = None):
+#%% Edges
+def draw_edges(Graphstate, axis, edgesmap = None):
     '''
     Draw the edges of the Graphstate in the given axis.
     The edgesmap is a list with an edgemap instruction for every edge.
@@ -123,18 +357,27 @@ def draw_edges(Graphstate, axis, graphstyle, edgesmap = None):
         edgemap = {'type'  : 'arc',
                    'params': [angle, anglecoor, direction]}
     '''
-    if edgesmap is None:
-        # Init an arc direction so that the arc directions can get flipped (from positive to negative angle)
+    edgestyle = Graphstate.graphstyle['edge_style']
+    if type(edgestyle) == dict:
+        if edgesmap is None:
+            # Init an arc direction so that the arc directions can get flipped (from positive to negative angle)
+            flip = True
+            # Now loop through all edges
+            for edge in Graphstate.get_edges():
+                flip = __draw_edge(Graphstate, axis, edgestyle, edge, arcflip = flip)
+        else:
+            for edge, edgemap in zip(Graphstate.get_edges(), edgesmap):
+                __draw_edge(Graphstate, axis, edgestyle, edge, edgemap)
+    elif type(edgestyle) == list:
+        assert len(edgestyle) == len(Graphstate.get_edges()), f"Graph style has instructions for {len(edgestyle)} edges but graphstate has {len(Graphstate.get_edges())} edges."
         flip = True
-        # Now loop through all edges
-        for edge in Graphstate.get_edges():
-            flip = draw_edge(Graphstate, axis, graphstyle, edge, arcflip = flip)
-    else:
-        for edge, edgemap in zip(Graphstate.get_edges(), edgesmap):
-            draw_edge(Graphstate, axis, graphstyle, edge, edgemap)
-        
+        for edge_index, edge in enumerate(Graphstate.get_edges()):
+            if edgesmap is None:
+                flip = __draw_edge(Graphstate, axis, edgestyle[edge_index], edge, arcflip = flip)
+            else:
+                __draw_edge(Graphstate, axis, edgestyle[edge_index], edge, edgemap[edge_index])
 
-def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None):
+def __draw_edge(Graphstate, axis, edgestyle, edge, edgemap = None, arcflip = None, max_node_radius = 0.1):
     '''
     Draw the edge for the given Graphstate and fiven edgemap. If edgemap is 
     '''
@@ -151,8 +394,8 @@ def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None
     other_nodes_positions = [Graphstate.node_positions[index] for index in other_nodes]
     
     # Get the vectors of the two nodes of the edge
-    x1 = mat(Graphstate.node_positions[edge[0]]).T
-    x2 = mat(Graphstate.node_positions[edge[1]]).T
+    x1 = matrix(Graphstate.node_positions[edge[0]]).T
+    x2 = matrix(Graphstate.node_positions[edge[1]]).T
        
     # Calculate help vector, the one from x1 to x2
     p = (x2 - x1)
@@ -165,18 +408,19 @@ def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None
     
     # Check if an edgemap was fiven
     if edgemap is not None:
-        raise ValueError("Warning, passing an edgemap has not yet been implemented.")
+        raise NotImplementedError("Warning, passing an edgemap has not yet been implemented.")
     # Now check if a straight edge can be made, or otherwise plot an arc
     else:
-        # Check if any nodes intersect with the straight edge    
-        if not _do_nodes_intersect_straightedge(other_nodes_positions, phat, pd, x1, graphstyle['node_radius']):
+        # Check if any nodes intersect with the straight edge
+        
+        if not _do_nodes_intersect_straightedge(other_nodes_positions, phat, pd, x1, max_node_radius):
             # Now we can plot a straight edge
             # Calculate the two points to draw the line from and to
             # These are the node positions adjusted by the offset given in the graphstyle, i.e. x1 and x2 plys/minus phat for the offset length
-            p1,p2 = x1 + (graphstyle['edge_offset'])*phat, x2 - (graphstyle['edge_offset'])*phat
+            p1,p2 = x1 + (edgestyle['edge_offset'])*phat, x2 - (edgestyle['edge_offset'])*phat
             
             # Plot the line
-            axis.plot([p1[0,0], p2[0,0]], [p1[1,0],p2[1,0]], color = graphstyle['edge_color'], linewidth = graphstyle['edge_width'])
+            axis.plot([p1[0,0], p2[0,0]], [p1[1,0],p2[1,0]], color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])
             
         # If the previous if statement doesn't hit, we make an arced edge   
         else:
@@ -194,13 +438,13 @@ def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None
                 # Calculate the circle params of the arc
                 [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstate.node_positions[edge[0]],
                                                                       Graphstate.node_positions[edge[1]], angle=((-1)**direction * angle), 
-                                                                      offset = graphstyle['edge_offset'])
+                                                                      offset = edgestyle['edge_offset'])
                 
                 # Check if no nodes intersect with the arcedge
-                if not _do_nodes_intersects_arcedge(other_nodes_positions, xr, yr, r, theta1, theta2, graphstyle, anglecoor = 'deg'):
+                if not _do_nodes_intersects_arcedge(other_nodes_positions, xr, yr, r, theta1, theta2, max_node_radius, anglecoor = 'deg'):
                     # Make the edge with the current circle params of the arc if the if statement passes
                     arc = Arc((xr,yr), width = 2*r, height = 2*r, 
-                                        theta1=theta1, theta2=theta2, color = graphstyle['edge_color'], linewidth = graphstyle['edge_width'])
+                                        theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])
                     # Break out of the loop because we found a valid angle
                     arcflip = not direction
                     break
@@ -211,9 +455,9 @@ def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None
                 # Calculate the circle params of the arc
                 [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstate.node_positions[edge[0]],
                                                                       Graphstate.node_positions[edge[1]], angle=((-1)**arcflip * 15), 
-                                                                      offset = graphstyle['edge_offset'])
+                                                                      offset = edgestyle['edge_offset'])
                 arc = Arc((xr,yr), width = 2*r, height = 2*r, 
-                                    theta1=theta1, theta2=theta2, color = graphstyle['edge_color'], linewidth = graphstyle['edge_width'])    
+                                    theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])    
             # Plot the edge, flip the arc direction
             arcflip = not arcflip
             axis.add_patch(arc)
@@ -223,6 +467,140 @@ def draw_edge(Graphstate, axis, graphstyle, edge, edgemap = None, arcflip = None
 
 #%% Edge plots
 # def plot_straight_edge(Graphstate, axis, graphsyle, edge)
+
+#%% Hulls/collections of nodes
+def draw_around_nodes(Graphstate, node_selection, axis):
+    '''
+    Draw a patch around a selection of nodes in the graphstate.
+    '''
+    
+    
+def get_hull_nodes(nodes_indices, positions, radii, tightness = 1.05):
+    '''
+    '''
+    if isinstance(radii, (float, int)):
+        radii = [radii]*len(positions)
+    elif isinstance(radii, (list, tuple)):
+        assert len(positions) == len(radii), f"{len(positions)} positions given but {len(radii)} radii given."
+    
+    XY = array(positions)
+    
+    padded_positions = concatenate((XY + tightness*array([(radius, 0) for radius in radii]), XY - tightness*array([(radius, 0) for radius in radii]),
+                                      XY + tightness*array([(0, radius) for radius in radii]), XY - tightness*array([(0, radius) for radius in radii])))
+    # print(XY + tightness*np.array([(radius, 0) for radius in radii]))
+    
+    # print(padded_positions)
+    
+    
+    hull = ConvexHull(padded_positions)
+    
+    extreme_nodes_indices = []
+    
+    for index in hull.vertices:
+        associated_node_index = index % len(positions)
+        if associated_node_index not in extreme_nodes_indices:
+            extreme_nodes_indices.append(associated_node_index)
+    
+    return [nodes_indices[index] for index in extreme_nodes_indices]
+
+def rotate_2D(vector, angle):
+    '''
+    '''
+    R = matrix([[cos(angle), -1*sin(angle)],[sin(angle), cos(angle)]])
+    return R @ vector
+
+
+def draw_contour(node_positions, radii, padding = 0, tightness = 1.05, ax = None):
+    '''
+    '''
+    from matplotlib import pyplot as plt
+    if ax is None:
+        ax = plt.gca()
+    
+    assert len(node_positions) == len(radii),f"Warning, provided {len(node_positions)} Node positions but {len(radii)} radii."
+    
+    # for pos, rad in zip(node_positions, radii):
+    #     print(f"Before padding radii: pos:{pos}, rad: {rad}")
+    # print(f"radii: {radii}")
+    
+    # Pre- and append the node positions and radii with their last and first entry, respectively.
+    # This facilitates easier looping
+    node_positions = [node_positions[-1]] + node_positions + [node_positions[0]]
+    radii = [radii[-1]] + radii + [radii[0]]
+    
+    # for pos, rad in zip(node_positions, radii):
+        # print(f"after appending radii: pos:{pos}, rad: {rad}")
+    
+    # Scale and pad the radii with the given parameters
+    radii = [tightness*rad + padding for rad in radii]
+    
+    # for pos, rad in zip(node_positions, radii):
+        # print(f"after padding radii: pos:{pos}, rad: {rad}")
+    
+    # Init a list containing all the points of the contour
+    contourpoints = []
+    
+    # Loop through every node position
+    for i in range(1, len(node_positions) - 1):
+        # Define the base point, i.e. the location of the node
+        x = matrix([[node_positions[i][0]], [node_positions[i][1]]])
+        
+        # print(f"Current node: {x}, rad = {radii[i]}")
+        
+        # Get the vectors from the point to the previous and next point
+        to_prev = matrix([
+            [node_positions[i-1][0] - node_positions[i][0]],
+            [node_positions[i-1][1] - node_positions[i][1]]
+            ])
+        to_next = matrix([
+            [node_positions[i+1][0] - node_positions[i][0]],
+            [node_positions[i+1][1] - node_positions[i][1]]
+            ])
+        
+        # Get the norms of the vectors
+        norm_prev = norm(to_prev)
+        norm_next = norm(to_next)
+        
+        # Calculate the angle between these two vectors
+        rel_angle = 2*pi - arccos(inner(to_prev.T, to_next.T)[0,0]/(norm_prev * norm_next))
+        
+        
+        
+        # Get the incoming angle of the arc
+        inc_angle = arccos((radii[i] - radii[i-1])/norm_prev)
+        
+        
+        
+        # If the previous node is larger then the angle may be flipped w.r.t. pi, whichever is largest
+        if radii[i-1] > radii[i]:
+            inc_angle = max((pi - inc_angle,inc_angle))
+        # If the previous node is smaller if should be the minimum
+        else:
+            inc_angle = min((pi - inc_angle,inc_angle))
+            
+        # Get the outcoming angle of the arc
+        out_angle = arccos((radii[i+1] - radii[i])/norm_next)
+        
+        # If the next node is larger, then the angle may be flipped w.r.t. pi, whichever is largest
+        if radii[i+1] > radii[i]:
+            out_angle = max((pi - out_angle, out_angle))
+        else:
+            out_angle = min((pi - out_angle, out_angle))
+        
+        # Define the arc range
+        arc_range = linspace(inc_angle, rel_angle - out_angle, endpoint = True, num = int(ceil(rad2deg(rel_angle - out_angle - inc_angle))/5))
+        # arc_range = np.linspace(0, rel_angle - out_angle, endpoint = True, num = 50)# num = int(np.ceil(np.rad2deg(rel_angle - out_angle - inc_angle))/5))
+
+        for arc_angle in arc_range:
+            rel_vector = x + radii[i]*rotate_2D(to_prev/norm_prev, arc_angle)
+            
+            contourpoints.append([rel_vector[0,0],rel_vector[1,0]])
+    
+    contourpoints.append(contourpoints[0])
+    x, y = list(zip(*contourpoints))
+    ax.fill(x,y, alpha = 0.1)
+    
+    return contourpoints
 
 #%% Helper functions
 
@@ -304,7 +682,7 @@ def _do_nodes_intersect_straightedge(node_positions, phat, pd, x1, node_radius):
     #Loop through every node in the node positions
     for node, node_position in enumerate(node_positions):
 
-        e = mat(node_position).T - x1
+        e = matrix(node_position).T - x1
         # We decompose e into p and p_ort. Then e = <e,p>p + <e,port>port, if p and port are normalized.
         # Let e = a*p + b*port
         # a is the projection of e upon the line through x1 and x2
@@ -333,7 +711,7 @@ def _do_nodes_intersect_straightedge(node_positions, phat, pd, x1, node_radius):
     return False
 
 
-def _do_nodes_intersects_arcedge(node_positions, xr, yr, r, theta1, theta2, graphstyle, anglecoor = 'deg'):
+def _do_nodes_intersects_arcedge(node_positions, xr, yr, r, theta1, theta2, max_node_radius, anglecoor = 'deg'):
     '''
     For every node perform the following
     Calculate if the node with vector e (with origin at x1!) with radius node_radius intersects 
@@ -350,7 +728,7 @@ def _do_nodes_intersects_arcedge(node_positions, xr, yr, r, theta1, theta2, grap
         d = sqrt((node_position[0] - xr)**2 + (node_position[1] - yr)**2)
         
         # If the distance of the node to the midpoint is in the range of the arc radius +- the node radius, it might intersect
-        if d < r + graphstyle['node_radius'] and d > r - graphstyle['node_radius']:
+        if d < r + max_node_radius and d > r - max_node_radius:
             # print(f'node {node} has distance {d} from point {xr, yr} for circle with radius {r}')
             # Now check if the point is actually in the slice of the circle made by the arc.
             point_angle = (atan((node_position[1] - yr)/(node_position[0] - xr)) + pi/2 - copysign(pi/2,node_position[0] - xr)) % (2*pi)
