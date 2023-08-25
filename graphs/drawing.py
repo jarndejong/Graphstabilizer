@@ -10,30 +10,7 @@ from math import copysign, tan, atan, sin, sqrt, pi
 #%%
 
 #%% Init functions
-# def calculate_axes_limits(xminmax, yminmax, node_radius, tightness = 0.05, equaloffset = True):
-#     '''
-#     Calculate x and y axes limits for a graph picture from the x and y min and max coordinates.
-#     The limits are calculated as such:
-#         For x, let d be the distance from max to min.
-#         Then the limits are the xmin and xmax minus cq. plus the offset, and similarly for y
-#         The offset is node_radius + tightness*d
-        
-#     If equaloffset = True, the offset for both x and y is set to the max of the two
-#     '''
-#     lims = []
-#     offsets = []
-#     for coor in (xminmax, yminmax):
-#         d = coor[1] - coor[0] + 2*node_radius
-#         offsets.append(node_radius + tightness*d)
-            
-#     for index, coor in enumerate((xminmax, yminmax)):
-#         if equaloffset:
-#             lims.append([coor[0] - max(offsets[0], offsets[1]), coor[1] + max(offsets[0], offsets[1])])
-#         else:
-#             lims.append([coor[0] - offsets[index], coor[1] + offsets[index]])
-#     return lims
-
-def calculate_axes_limits(Graphstate):
+def calculate_axes_limits(Graphstyle):
     '''
     Calculate x and y axes limits for a graph picture from the x and y min and max coordinates.
     The limits are calculated as such:
@@ -47,31 +24,29 @@ def calculate_axes_limits(Graphstate):
     
     
     # Get the coordinates of the extreme nodes
-    minmaxes = Graphstate.get_extreme_coordinates()
+    minmaxes = Graphstyle.get_extreme_coordinates()
     
     # Get the indices of these nodes
-    [xleft, xright], [yleft, yright] = Graphstate.get_extreme_node_indices()
+    [xleft, xright], [yleft, yright] = Graphstyle.get_extreme_node_indices()
     
     # Check if the node radius is defined for all nodes equally or for every node separately
-    nodesstyle = Graphstate.graphstyle['nodes_style']
+    nodesstyle = Graphstyle.nodes_style
     
-    if type(nodesstyle) == dict:
-        noderadii = [[nodesstyle['node_radius']] * 2] * 2
-    elif type(nodesstyle) == list:
-        noderadii = [
-            [nodesstyle[xleft]['node_radius'], nodesstyle[xright]['node_radius']],
-            [nodesstyle[yleft]['node_radius'], nodesstyle[yright]['node_radius']]
-                    ]
+    
+    noderadii = [
+        [nodesstyle[xleft]['node_radius'], nodesstyle[xright]['node_radius']],
+        [nodesstyle[yleft]['node_radius'], nodesstyle[yright]['node_radius']]
+                ]
     
     # Calculate the offsets first
     offsets = []
     for coor, coorradii in zip(minmaxes,noderadii):
         d = coor[1] - coor[0] + coorradii[0] + coorradii[1]
 
-        offsets.append((coorradii[0] + Graphstate.graphstyle['figure_style']['figure_tightness']*d, coorradii[1] + Graphstate.graphstyle['figure_style']['figure_tightness']*d))
+        offsets.append((coorradii[0] + Graphstyle.figure_style['figure_tightness']*d, coorradii[1] + Graphstyle.figure_style['figure_tightness']*d))
     
     
-    if Graphstate.graphstyle['figure_style']['figure_offsetequal']:
+    if Graphstyle.figure_style['figure_offsetequal']:
         offsets = [[max(max(offsets[0]), max(offsets[1]))] * 2] * 2
     
     
@@ -81,30 +56,30 @@ def calculate_axes_limits(Graphstate):
     for coor, offset in zip(minmaxes, offsets):
         lims.append([coor[0] - offset[0], coor[1] + offset[1]])
         
-    if Graphstate.graphstyle['figure_style']['figure_square']:
+    if Graphstyle.figure_style['figure_square']:
         
         lims = [[min(lims[0] + lims[1]), max(lims[0] + lims[1])]] * 2
         
     return lims
 
 #%% Preparation    
-def prepare_graphstatedrawing(Graphstate):
+def prepare_graphstatedrawing(Graphstyle):
     '''
     Prepare a Graphstate figure.
     Return a figure and an axis object
     '''
     # If no axislimits are given, calculate them
-    axislimits = Graphstate.graphstyle['figure_style']['axes_limits']
+    axislimits = Graphstyle.figure_style['axes_limits']
     
     if axislimits is None:
-        axislimits = calculate_axes_limits(Graphstate)
+        axislimits = calculate_axes_limits(Graphstyle)
 
     # Unpack the axis limits
     xlim, ylim = axislimits[0], axislimits[1]
     
     # Make figure
-    fig = figure(figsize = (Graphstate.graphstyle['figure_style']['figure_multiplier']*(xlim[1] - xlim[0]), 
-                            Graphstate.graphstyle['figure_style']['figure_multiplier']*(ylim[1] - ylim[0]))
+    fig = figure(figsize = (Graphstyle.figure_style['figure_multiplier']*(xlim[1] - xlim[0]), 
+                            Graphstyle.figure_style['figure_multiplier']*(ylim[1] - ylim[0]))
                  )
     
     # Add the axis and set the params
@@ -119,23 +94,24 @@ def prepare_graphstatedrawing(Graphstate):
     # fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
     
     # Set the background color
-    fig.patch.set_facecolor(Graphstate.graphstyle['figure_style']['background_color'])
-    axis.patch.set_facecolor(Graphstate.graphstyle['figure_style']['background_color'])
+    fig.patch.set_facecolor(Graphstyle.figure_style['background_color'])
+    axis.patch.set_facecolor(Graphstyle.figure_style['background_color'])
     
-    if Graphstate.graphstyle['figure_style']['figure_title'] is not None:
-        axis.set_title(**Graphstate.graphstyle['figure_style']['figure_title'])
+    if Graphstyle.figure_style['figure_title'] is not None:
+        axis.set_title(**Graphstyle.figure_style['figure_title'])
 
     
     return fig, axis
 
-def prepare_multiple_graphstatedrawing(Graphstates: list, nr_rows = None, nr_columns = None, figure_multiplier = None, background_color = None, fill_order = 'row', gridspec_mapping = None):
+def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_columns = None, figure_multiplier = None, background_color = None, fill_order = 'row', gridspec_mapping = None):
     '''
     Prepare a figure with multiple sublots for drawings.
     Returns a figure and a list of axes.
     '''
+
     
     # Determine number of rows and columns
-    nr_drawings = len(Graphstates)
+    nr_drawings = len(Graphstyles)
     if nr_rows is None and nr_columns is None:
         if gridspec_mapping is not None:
             raise ValueError("When providing a gridspec mapping, please manually provide at least a nr of rows or nr_columns")
@@ -156,7 +132,7 @@ def prepare_multiple_graphstatedrawing(Graphstates: list, nr_rows = None, nr_col
     
     # Determine background color
     if background_color is None:
-        background_color = Graphstates[0].graphstyle['figure_style']['background_color']
+        background_color = Graphstyles[0].figure_style['background_color']
     
     assert fill_order == 'row' or fill_order == 'column', f"Provide either 'row' or 'column' as a filling order, not {fill_order}."
     
@@ -186,10 +162,10 @@ def prepare_multiple_graphstatedrawing(Graphstates: list, nr_rows = None, nr_col
                     axis = fig.add_subplot(gs[row_nr, col_nr])
                     
                     # If no axislimits are given, calculate them
-                    axeslimits = Graphstates[graphstate_index].graphstyle['figure_style']['axes_limits']
+                    axeslimits = Graphstyles[graphstate_index].figure_style['axes_limits']
                     
                     if axeslimits is None:
-                        axeslimits = calculate_axes_limits(Graphstates[graphstate_index])
+                        axeslimits = calculate_axes_limits(Graphstyles[graphstate_index])
 
                     # Unpack the axis limits
                     xlim, ylim = axeslimits[0], axeslimits[1]
@@ -197,13 +173,13 @@ def prepare_multiple_graphstatedrawing(Graphstates: list, nr_rows = None, nr_col
                     axis.set(xlim=xlim, ylim=ylim, aspect=1)
                     axis.axis('off')
                     
-                    axis.patch.set_facecolor(Graphstates[graphstate_index].graphstyle['figure_style']['background_color'])
+                    axis.patch.set_facecolor(Graphstyles[graphstate_index].figure_style['background_color'])
                     
                     axes.append(axis)
                     
                     graphstate_index += 1
                     
-                    if graphstate_index == len(Graphstates):
+                    if graphstate_index == len(Graphstyles):
                         return fig, axes
         if fill_order == 'row':
             
@@ -214,10 +190,10 @@ def prepare_multiple_graphstatedrawing(Graphstates: list, nr_rows = None, nr_col
                     axis = fig.add_subplot(gs[row_nr, col_nr])
                     
                     # If no axislimits are given, calculate them
-                    axeslimits = Graphstates[graphstate_index].graphstyle['figure_style']['axes_limits']
+                    axeslimits = Graphstyles[graphstate_index].figure_style['axes_limits']
                     
                     if axeslimits is None:
-                        axeslimits = calculate_axes_limits(Graphstates[graphstate_index])
+                        axeslimits = calculate_axes_limits(Graphstyles[graphstate_index])
 
                     # Unpack the axis limits
                     xlim, ylim = axeslimits[0], axeslimits[1]
@@ -225,23 +201,23 @@ def prepare_multiple_graphstatedrawing(Graphstates: list, nr_rows = None, nr_col
                     axis.set(xlim=xlim, ylim=ylim, aspect=1)
                     axis.axis('off')
                     
-                    axis.patch.set_facecolor(Graphstates[graphstate_index].graphstyle['figure_style']['background_color'])
+                    axis.patch.set_facecolor(Graphstyles[graphstate_index].figure_style['background_color'])
                     
                     axes.append(axis)
                     
                     graphstate_index += 1
                     
-                    if graphstate_index == len(Graphstates):
+                    if graphstate_index == len(Graphstyles):
                         return fig, axes
     else:
-        for graphstate, mapping in zip(Graphstates, gridspec_mapping):
+        for Graphstyle, mapping in zip(Graphstyles, gridspec_mapping):
             axis = fig.add_subplot(gs[mapping[0], mapping[1]])
             
             # If no axislimits are given, calculate them
-            axeslimits = Graphstates[graphstate_index].graphstyle['figure_style']['axes_limits']
+            axeslimits = Graphstyle.figure_style['axes_limits']
             
             if axeslimits is None:
-                axeslimits = calculate_axes_limits(Graphstates[graphstate_index])
+                axeslimits = calculate_axes_limits(Graphstyle)
 
             # Unpack the axis limits
             xlim, ylim = axeslimits[0], axeslimits[1]
@@ -249,61 +225,28 @@ def prepare_multiple_graphstatedrawing(Graphstates: list, nr_rows = None, nr_col
             axis.set(xlim=xlim, ylim=ylim, aspect=1)
             axis.axis('off')
             
-            axis.patch.set_facecolor(Graphstates[graphstate_index].graphstyle['figure_style']['background_color'])
+            axis.patch.set_facecolor(Graphstyle.figure_style['background_color'])
             
             axes.append(axis)
                    
                     
     return fig, axes
         
-# def prepare_graphstatesdrawing(Graphstates_list, graphstyle, axislimits = None, figure_multiplier = 1, nr_rows = None, nr_cols = None):
-#     '''
-#     Prepare a Graphstate figure.
-#     Return a figure and an axis object
-#     '''
-#     # If no axislimits are given, calculate them
-#     if axislimits is None:
-#         xminmax, yminmax = Graphstate.get_extreme_coordinates()
 
-#         axislimits = calculate_axes_limits(xminmax, yminmax, graphstyle['node_radius'], tightness = graphstyle['figure_tightness'], equaloffset = graphstyle['figure_offsetequal'])
-        
-#     # Unpack the axis limits
-#     xlim, ylim = axislimits[0], axislimits[1]
-    
-#     # Make figure
-#     fig = figure(figsize = (figure_multiplier*(xlim[1] - xlim[0]), figure_multiplier*(ylim[1] - ylim[0])))
-    
-#     # Add the axis and set the params
-#     axis = fig.add_subplot(111)
-    
-#     axis.set(xlim=xlim, ylim=ylim, aspect=1)
-#     axis.axis('off')
-
-
-#     axis.margins(x=0, y=0)
-    
-#     # fig.subplots_adjust(left = 0, bottom = 0, right = 1, top = 1, wspace = 0, hspace = 0)
-    
-#     # Set the background color
-#     fig.patch.set_facecolor(graphstyle['background_color'])
-#     axis.patch.set_facecolor(graphstyle['background_color'])
-
-    
-#     return fig, axis
 #%% Nodes
-def draw_nodes(Graphstate, axis):
+def draw_nodes(Graphstyle, axis):
     '''
     Draw the nodes of the Graphstate in the given axis.
     The graphstyle is either a dictionary for instructions on how to draw the nodes, or a list of dictionaries on how to draw every node separately.
     '''
-    labels = Graphstate.node_labels
+    labels = Graphstyle.node_labels
     if labels is None:
-        labels = [f'{i}' for i in range(Graphstate.nr_qubits)]
+        labels = [f'{i}' for i in range(Graphstyle.nr_nodes)]
         
-    nodesstyle = Graphstate.graphstyle['nodes_style']
+    nodesstyle = Graphstyle.nodes_style
     if type(nodesstyle) == dict:
         # Plot every node iteratively
-        for node_index, position in enumerate(Graphstate.node_positions):
+        for node_index, position in enumerate(Graphstyle.node_positions):
             # Make a circle at the node position
             circle = Circle(position, radius = nodesstyle['node_radius'], 
                             facecolor = nodesstyle['node_color'], 
@@ -323,9 +266,9 @@ def draw_nodes(Graphstate, axis):
                           usetex = nodesstyle['tex_for_labels'], 
                           color = nodesstyle['label_color'])
     elif type(nodesstyle) == list:
-        assert len(nodesstyle) == Graphstate.nr_qubits, f"Graph style has instructions for {len(nodesstyle)} nodes but graphstate has {Graphstate.nr_qubits} nodes."
+        assert len(nodesstyle) == Graphstyle.nr_nodes, f"Graph style has instructions for {len(nodesstyle)} nodes but graphstayle has {Graphstyle.nr_nodes} nodes."
         # Plot every node iteratively
-        for node_index, position in enumerate(Graphstate.node_positions):
+        for node_index, position in enumerate(Graphstyle.node_positions):
             # Make a circle at the node position
             circle = Circle(position, radius = nodesstyle[node_index]['node_radius'], 
                             facecolor = nodesstyle[node_index]['node_color'], 
@@ -346,7 +289,7 @@ def draw_nodes(Graphstate, axis):
                           color = nodesstyle[node_index]['label_color'])
 
 #%% Edges
-def draw_edges(Graphstate, axis, edgesmap = None):
+def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None):
     '''
     Draw the edges of the Graphstate in the given axis.
     The edgesmap is a list with an edgemap instruction for every edge.
@@ -357,45 +300,47 @@ def draw_edges(Graphstate, axis, edgesmap = None):
         edgemap = {'type'  : 'arc',
                    'params': [angle, anglecoor, direction]}
     '''
-    edgestyle = Graphstate.graphstyle['edge_style']
+    edgestyle = Graphstyle.edge_style
     if type(edgestyle) == dict:
         if edgesmap is None:
             # Init an arc direction so that the arc directions can get flipped (from positive to negative angle)
             flip = True
             # Now loop through all edges
             for edge in Graphstate.get_edges():
-                flip = __draw_edge(Graphstate, axis, edgestyle, edge, arcflip = flip)
+                flip = __draw_edge(Graphstyle, axis, edgestyle, edge, arcflip = flip)
         else:
             for edge, edgemap in zip(Graphstate.get_edges(), edgesmap):
-                __draw_edge(Graphstate, axis, edgestyle, edge, edgemap)
+                __draw_edge(Graphstyle, axis, edgestyle, edge, edgemap)
     elif type(edgestyle) == list:
         assert len(edgestyle) == len(Graphstate.get_edges()), f"Graph style has instructions for {len(edgestyle)} edges but graphstate has {len(Graphstate.get_edges())} edges."
         flip = True
         for edge_index, edge in enumerate(Graphstate.get_edges()):
             if edgesmap is None:
-                flip = __draw_edge(Graphstate, axis, edgestyle[edge_index], edge, arcflip = flip)
+                flip = __draw_edge(Graphstyle, axis, edgestyle[edge_index], edge, arcflip = flip)
             else:
-                __draw_edge(Graphstate, axis, edgestyle[edge_index], edge, edgemap[edge_index])
+                __draw_edge(Graphstyle, axis, edgestyle[edge_index], edge, edgemap[edge_index])
 
-def __draw_edge(Graphstate, axis, edgestyle, edge, edgemap = None, arcflip = None, max_node_radius = 0.1):
+def __draw_edge(Graphstyle, axis, edgestyle, edge, edgemap = None, arcflip = None, max_node_radius = 0.1):
     '''
     Draw the edge for the given Graphstate and fiven edgemap. If edgemap is 
     '''
     # Get indices instead of labels
-    if Graphstate.node_labels is not None:
-        # Update the edge to have the indices instead of the labels as the entries
-        edge = (Graphstate.node_labels.index(edge[0]), Graphstate.node_labels.index(edge[1]))
-    
+    # if Graphstyle.node_labels is not None:
+    #     # Update the edge to have the indices instead of the labels as the entries
+    #     print(edge)
+    #     print(Graphstyle.node_labels)
+    #     edge = (Graphstyle.node_labels.index(Graphstyle._handle_nodeindex_param(edge[0])), Graphstyle.node_labels.index(Graphstyle._handle_nodeindex_param(edge[1])))
+    #     print(edge)
     # Get the indices of all the nodes that are not in the current edge
-    other_nodes = list(range(Graphstate.nr_qubits))
+    other_nodes = list(range(Graphstyle.nr_nodes))
     other_nodes.pop(max(edge))
     other_nodes.pop(min(edge))
     
-    other_nodes_positions = [Graphstate.node_positions[index] for index in other_nodes]
+    other_nodes_positions = [Graphstyle.node_positions[index] for index in other_nodes]
     
     # Get the vectors of the two nodes of the edge
-    x1 = matrix(Graphstate.node_positions[edge[0]]).T
-    x2 = matrix(Graphstate.node_positions[edge[1]]).T
+    x1 = matrix(Graphstyle.node_positions[edge[0]]).T
+    x2 = matrix(Graphstyle.node_positions[edge[1]]).T
        
     # Calculate help vector, the one from x1 to x2
     p = (x2 - x1)
@@ -436,8 +381,8 @@ def __draw_edge(Graphstate, axis, edgestyle, edge, edgemap = None, arcflip = Non
     
                 
                 # Calculate the circle params of the arc
-                [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstate.node_positions[edge[0]],
-                                                                      Graphstate.node_positions[edge[1]], angle=((-1)**direction * angle), 
+                [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstyle.node_positions[edge[0]],
+                                                                      Graphstyle.node_positions[edge[1]], angle=((-1)**direction * angle), 
                                                                       offset = edgestyle['edge_offset'])
                 
                 # Check if no nodes intersect with the arcedge
@@ -453,8 +398,8 @@ def __draw_edge(Graphstate, axis, edgestyle, edge, edgemap = None, arcflip = Non
             if arc is None:
                 print("Warning, no arc could be found that doesn't intersect with at least one node. Resorting to angle = 15 degree.")
                 # Calculate the circle params of the arc
-                [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstate.node_positions[edge[0]],
-                                                                      Graphstate.node_positions[edge[1]], angle=((-1)**arcflip * 15), 
+                [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstyle.node_positions[edge[0]],
+                                                                      Graphstyle.node_positions[edge[1]], angle=((-1)**arcflip * 15), 
                                                                       offset = edgestyle['edge_offset'])
                 arc = Arc((xr,yr), width = 2*r, height = 2*r, 
                                     theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])    
@@ -469,73 +414,47 @@ def __draw_edge(Graphstate, axis, edgestyle, edge, edgemap = None, arcflip = Non
 # def plot_straight_edge(Graphstate, axis, graphsyle, edge)
 
 #%% Hulls/collections of nodes
-def draw_around_nodes(Graphstate, node_selection, axis):
+def draw_path_around_nodes( Graphstyle, node_selection: list, axis):
     '''
     Draw a patch around a selection of nodes in the graphstate.
     '''
+    # Get the nodes' positions and radii.
+    selection_positions = Graphstyle.get_node_positions(node_selection)
+    
+    selection_radii = Graphstyle.get_nodes_radii(node_selection)
+    
+    # Obtain the extreme nodes of the hull, i.e. those nodes around which the patch is gonna be drawn.
+    extreme_nodes_indices = _get_indices_extreme_nodes_hull(selection_positions, selection_radii)
+    
+    extreme_nodes_positions = [selection_positions[index] for index in extreme_nodes_indices]
+    extreme_nodes_radii = [selection_radii[index] for index in extreme_nodes_indices]
+    
+    # Draw the contour
+    _draw_contour(Graphstyle.patch_style, extreme_nodes_positions, extreme_nodes_radii, axis)
     
     
-def get_hull_nodes(nodes_indices, positions, radii, tightness = 1.05):
-    '''
-    '''
-    if isinstance(radii, (float, int)):
-        radii = [radii]*len(positions)
-    elif isinstance(radii, (list, tuple)):
-        assert len(positions) == len(radii), f"{len(positions)} positions given but {len(radii)} radii given."
-    
-    XY = array(positions)
-    
-    padded_positions = concatenate((XY + tightness*array([(radius, 0) for radius in radii]), XY - tightness*array([(radius, 0) for radius in radii]),
-                                      XY + tightness*array([(0, radius) for radius in radii]), XY - tightness*array([(0, radius) for radius in radii])))
-    # print(XY + tightness*np.array([(radius, 0) for radius in radii]))
-    
-    # print(padded_positions)
-    
-    
-    hull = ConvexHull(padded_positions)
-    
-    extreme_nodes_indices = []
-    
-    for index in hull.vertices:
-        associated_node_index = index % len(positions)
-        if associated_node_index not in extreme_nodes_indices:
-            extreme_nodes_indices.append(associated_node_index)
-    
-    return [nodes_indices[index] for index in extreme_nodes_indices]
-
-def rotate_2D(vector, angle):
-    '''
-    '''
-    R = matrix([[cos(angle), -1*sin(angle)],[sin(angle), cos(angle)]])
-    return R @ vector
 
 
-def draw_contour(node_positions, radii, padding = 0, tightness = 1.05, ax = None):
+
+
+
+def _draw_contour(patch_style, node_positions, radii, axis):
     '''
+    Draw a contour/hull/patch around the given nodes, in order of the list that they're provided.
     '''
-    from matplotlib import pyplot as plt
-    if ax is None:
-        ax = plt.gca()
-    
+
     assert len(node_positions) == len(radii),f"Warning, provided {len(node_positions)} Node positions but {len(radii)} radii."
     
-    # for pos, rad in zip(node_positions, radii):
-    #     print(f"Before padding radii: pos:{pos}, rad: {rad}")
-    # print(f"radii: {radii}")
+    
     
     # Pre- and append the node positions and radii with their last and first entry, respectively.
     # This facilitates easier looping
     node_positions = [node_positions[-1]] + node_positions + [node_positions[0]]
     radii = [radii[-1]] + radii + [radii[0]]
     
-    # for pos, rad in zip(node_positions, radii):
-        # print(f"after appending radii: pos:{pos}, rad: {rad}")
-    
+
     # Scale and pad the radii with the given parameters
-    radii = [tightness*rad + padding for rad in radii]
-    
-    # for pos, rad in zip(node_positions, radii):
-        # print(f"after padding radii: pos:{pos}, rad: {rad}")
+    radii = [patch_style['tightness']*rad + patch_style['padding'] for rad in radii]
     
     # Init a list containing all the points of the contour
     contourpoints = []
@@ -592,13 +511,22 @@ def draw_contour(node_positions, radii, padding = 0, tightness = 1.05, ax = None
         # arc_range = np.linspace(0, rel_angle - out_angle, endpoint = True, num = 50)# num = int(np.ceil(np.rad2deg(rel_angle - out_angle - inc_angle))/5))
 
         for arc_angle in arc_range:
-            rel_vector = x + radii[i]*rotate_2D(to_prev/norm_prev, arc_angle)
+            rel_vector = x + radii[i]*_rotate_2D(to_prev/norm_prev, arc_angle)
             
             contourpoints.append([rel_vector[0,0],rel_vector[1,0]])
     
+    # Append the first position to make a loop
     contourpoints.append(contourpoints[0])
+    
+    # Unpack and plot
     x, y = list(zip(*contourpoints))
-    ax.fill(x,y, alpha = 0.1)
+    axis.fill(x,y, 
+              alpha = patch_style['face_alpha'],
+              facecolor = patch_style['face_color'],
+              linewidth = patch_style['edge_width'],
+              edgecolor = patch_style['edge_color'],
+              linestyle = patch_style['edge_style']
+              )
     
     return contourpoints
 
@@ -740,3 +668,37 @@ def _do_nodes_intersects_arcedge(node_positions, xr, yr, r, theta1, theta2, max_
             if point_angle > min(theta1, theta2) and point_angle < max(theta1, theta2):
                 return True
     return False
+
+##
+def _get_indices_extreme_nodes_hull(positions: list, radii: list):
+    '''
+    For the nodes with positions and radii given, obtain the extreme points of the convex hull of these nodes.
+    Returns the indices of the extreme points, in anti-clockwise order.
+    '''
+    if isinstance(radii, (float, int)):
+        radii = [radii]*len(positions)
+    elif isinstance(radii, (list, tuple)):
+        assert len(positions) == len(radii), f"{len(positions)} positions given but {len(radii)} radii given."
+    
+    XY = array(positions)
+    
+    padded_positions = concatenate((XY + array([(radius, 0) for radius in radii]), XY - array([(radius, 0) for radius in radii]),
+                                      XY + array([(0, radius) for radius in radii]), XY - array([(0, radius) for radius in radii])))
+    
+    
+    hull = ConvexHull(padded_positions)
+    
+    extreme_nodes_indices = []
+    
+    for index in hull.vertices:
+        associated_node_index = index % len(positions)
+        if associated_node_index not in extreme_nodes_indices:
+            extreme_nodes_indices.append(associated_node_index)
+    
+    return extreme_nodes_indices
+
+def _rotate_2D(vector, angle):
+    '''
+    '''
+    R = matrix([[cos(angle), -1*sin(angle)],[sin(angle), cos(angle)]])
+    return R @ vector
