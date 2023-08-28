@@ -42,9 +42,10 @@ def calculate_axes_limits(Graphstyle):
     offsets = []
     for coor, coorradii in zip(minmaxes,noderadii):
         d = coor[1] - coor[0] + coorradii[0] + coorradii[1]
+        
 
-        offsets.append((coorradii[0] + Graphstyle.figure_style['figure_tightness']*d, coorradii[1] + Graphstyle.figure_style['figure_tightness']*d))
-    
+        offsets.append((coorradii[0] + Graphstyle.patch_style['tightness']*coorradii[0] + Graphstyle.patch_style['padding'] + Graphstyle.figure_style['figure_tightness']*d, coorradii[1] + Graphstyle.figure_style['figure_tightness']*d))
+
     
     if Graphstyle.figure_style['figure_offsetequal']:
         offsets = [[max(max(offsets[0]), max(offsets[1]))] * 2] * 2
