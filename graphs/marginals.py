@@ -243,7 +243,7 @@ class MetaGraphFour:
     '''
     Initialize a 4-body MetaGraph. It can be initialized from a given 
     '''
-    def __init__(self, G: Graphstate | None = None, N: list | None = None, M: tuple = (0,1,2,3)):
+    def __init__(self, G, N, M: tuple = (0,1,2,3)):
         # If G is None we try to init from the N list
         if G is None:
             if N is None:
