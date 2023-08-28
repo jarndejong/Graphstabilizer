@@ -68,7 +68,7 @@ class MetaGraphThree:
     '''
     Initialize a 3-body MetaGraph. It can be initialized from a given 
     '''
-    def __init__(self, G: Graphstate | None = None, N: list | None = None, M: tuple = (0,1,2)):
+    def __init__(self, G: Graphstate  = None, N = None, M: tuple = (0,1,2)):
         # If G is None we try to init from the N list
         if G is None:
             if N is None:
