@@ -1,6 +1,6 @@
 ## Global imports
-from networkx import from_numpy_array as nxfrom_numpy_array
-from networkx.classes.graph import Graph as nxgraph
+# from networkx import from_numpy_array as nxfrom_numpy_array
+# from networkx.classes.graph import Graph as nxgraph
 
 from Graphstabilizer.checkers.elementary import check_is_Boolvar, check_is_node_index
 
@@ -29,8 +29,8 @@ class Graphstate:
             self.init_from_adjacency_matrix(graph)
         elif type(graph) is StabilizerState:
             self.init_from_stabilizer_state(graph)
-        elif type(graph) is nxgraph:
-            self.init_from_networkx_graph(graph)
+        # elif type(graph) is nxgraph:
+        #     self.init_from_networkx_graph(graph)
         else: raise ValueError(f"Please provide either an adjacency matrix, a STabilizerState or a networkXgraph. This was provided instead: {type(graph)}")
         
         
@@ -133,12 +133,12 @@ class Graphstate:
     
     
     ### Transformations to other objects
-    def to_networkxGraph(self):
-        '''
-        Return a networkxGraph from the graph associated with the graph state. Attributes also brought over are:
-            - None
-        '''
-        return nxfrom_numpy_array(self.adj.matrix)
+    # def to_networkxGraph(self):
+    #     '''
+    #     Return a networkxGraph from the graph associated with the graph state. Attributes also brought over are:
+    #         - None
+    #     '''
+    #     return nxfrom_numpy_array(self.adj.matrix)
     
     
     

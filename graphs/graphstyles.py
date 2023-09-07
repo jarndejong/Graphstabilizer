@@ -52,6 +52,8 @@ class GraphStyle:
     def set_nodes_radii(self, node_radii: list):
         '''
         '''
+        if type(node_radii) == float:
+            node_radii = [node_radii]*self.nr_nodes
         assert self.nr_nodes == len(node_radii), f"Graphstyle has {self.nr_nodes} nodes but the given radii list has {len(node_radii)} entries."
         
         for node, radius in enumerate(node_radii):
@@ -79,11 +81,15 @@ class GraphStyle:
         
         self.nodes_style[node_index][property_name] = property_value
     
-    def set_nodes_property(self, nodes_indices: list, property_name: str, property_values):
+    def set_nodes_property(self, property_name: str = None, property_values = None, nodes_indices = None):
         '''
         '''
+        if nodes_indices is None:
+            nodes_indices = list(range(self.nr_nodes))
+            
         if not isinstance(property_values, list):
             property_values = [property_values]*len(nodes_indices)
+        
             
         assert len(nodes_indices) == len(property_values), f" There are {len(nodes_indices)} node indices given but {len(property_values)} properties values to set given."
         
