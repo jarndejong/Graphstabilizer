@@ -98,18 +98,25 @@ def prepare_graphstatedrawing(Graphstyle):
     fig.patch.set_facecolor(Graphstyle.figure_style['background_color'])
     axis.patch.set_facecolor(Graphstyle.figure_style['background_color'])
     
-    if Graphstyle.figure_style['figure_title'] is not None:
+    # Plot the title
+    if Graphstyle.figure_style['with_title']:
         axis.set_title(**Graphstyle.figure_style['figure_title'])
 
     
     return fig, axis
 
-def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_columns = None, figure_multiplier = None, background_color = None, fill_order = 'row', gridspec_mapping = None):
+def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_columns = None, figure_multiplier = None, background_color = None, fill_order = 'row', gridspec_mapping = None, nr_plots = None):
     '''
     Prepare a figure with multiple sublots for drawings.
     Returns a figure and a list of axes.
     '''
-
+    
+    if not isinstance(Graphstyles, list):
+        if nr_rows is not None and nr_columns is not None:
+            Graphstyles = [Graphstyles]*nr_rows*nr_columns
+        elif nr_plots is not None:
+            Graphstyles = [Graphstyles]*nr_plots
+        else: raise ValueError("When graphstyles is not a list, provide either the nr of plots, of the nr of columns and nr of rows.")
     
     # Determine number of rows and columns
     nr_drawings = len(Graphstyles)
@@ -176,6 +183,10 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
                     
                     axis.patch.set_facecolor(Graphstyles[graphstate_index].figure_style['background_color'])
                     
+                    # Plot the title
+                    if Graphstyles[graphstate_index].figure_style['with_title']:
+                        axis.set_title(**Graphstyles[graphstate_index].figure_style['figure_title'])
+                    
                     axes.append(axis)
                     
                     graphstate_index += 1
@@ -203,6 +214,10 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
                     axis.axis('off')
                     
                     axis.patch.set_facecolor(Graphstyles[graphstate_index].figure_style['background_color'])
+                    
+                    # Plot the title
+                    if Graphstyles[graphstate_index].figure_style['with_title']:
+                        axis.set_title(**Graphstyles[graphstate_index].figure_style['figure_title'])
                     
                     axes.append(axis)
                     

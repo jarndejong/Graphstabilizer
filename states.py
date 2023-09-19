@@ -87,6 +87,43 @@ class Graphstate:
         
         self.adj = local_complementation(self.adj, node_index)
     
+    def add_edge(self, node1, node2):
+        '''
+        Add an edge between the two given nodes. Performs nothing if the edge is already there.
+        '''
+        # Check validity of input
+        node1_index = self.__handle_nodeindex_param(node1)
+        node2_index = self.__handle_nodeindex_param(node2)
+        
+        self.adj.add_edge(node1_index, node2_index)
+    
+    def remove_edge(self, node1, node2):
+        '''
+        Remove an edge between the two given nodes. Performs nothing if the edge wasn't there.
+        '''
+        # Check validity of input
+        node1_index = self.__handle_nodeindex_param(node1)
+        node2_index = self.__handle_nodeindex_param(node2)
+        
+        self.adj.remove_edge(node1_index, node2_index)
+    
+    def flip_edge(self, node1, node2):
+        '''
+        Remove an edge between the two given nodes. Performs nothing if the edge wasn't there.
+        '''
+        # Check validity of input
+        node1_index = self.__handle_nodeindex_param(node1)
+        node2_index = self.__handle_nodeindex_param(node2)
+        
+        self.adj.flip_edge(node1_index, node2_index)
+    
+    def CZ(self, node1, node2):
+        '''
+        Perform a CZ gate between the two given nodes. Equivalent to self.flip_edge(node1, node2)
+        '''
+        self.flip_edge(node1, node2)
+        
+        
     #%% Info functions    
     def get_neighbourhood(self, node):
         '''
@@ -120,13 +157,15 @@ class Graphstate:
         '''
         return self.nr_qubits
     
+    def contains_edge(self, node1, node2):
+        '''
+        Returns True if there is an edge between the two nodes, returns false otherwise.
+        '''
+        # Check validity of input
+        node1_index = self.__handle_nodeindex_param(node1)
+        node2_index = self.__handle_nodeindex_param(node2)
+        return node1_index in self.get_neighbourhood(node2_index)
     
-    #%% Node label methods
-    def retrieve_node_index(self, nodelabel):
-        '''
-        Retrieve the (current) index of the node associated with the node label.
-        '''
-        return self.node_labels.index(nodelabel)
     
     
     #%% Drawing methods

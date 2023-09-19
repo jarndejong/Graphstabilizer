@@ -29,14 +29,12 @@ class AdjacencyMatrix:
         # Check if matrix is already AdjacencyMatrix object
         if str(type(graph)) == 'Graphstabilizer.graphs.elementary.AdjacencyMatrix':
             self.matrix = graph.matrix
-            self.shape = graph.shape
-            self.size = graph.size
+
         
         # Check if matrix is a nx graph
         elif type(graph) is nxGraph:
             self.matrix = AdjacencyMatrix(nxadjacency_matrix(graph, dtype = 'int64').todense()).matrix
-            self.shape = self.matrix.shape
-            self.size = self.shape[0]
+
         else:
             # Check if numpy matrix or ndarray
             if not (type(graph) is npmatrix or type(graph) is npndarray):
@@ -59,11 +57,38 @@ class AdjacencyMatrix:
                 raise ValueError(f"Input adjacency matrix has non-binary entries: {graph}.")
 
             self.matrix = graph
-            self.shape = graph.shape
-            self.size = graph.shape[0]
     
     def __str__(self):
         return self.matrix
+    
+    
+    ## Properties
+    @property
+    def shape(self):
+        return self.matrix.shape
+    
+    @property
+    def size(self):
+        return self.shape[0]
+    
+    ## Operational methods
+    def add_edge(self, node1, node2):
+        '''
+        Add an edge between node1 and node2 if it is not already there.
+        '''
+        self.matrix[node1, node2], self.matrix[node2, node1] = 1, 1
+    
+    def remove_edge(self, node1, node2):
+        '''
+        Remove the edge between node1 and node2 if it was there.
+        '''
+        self.matrix[node1, node2], self.matrix[node2, node1] = 0, 0
+    
+    def flip_edge(self, node1, node2):
+        '''
+        Flip the edge between node1 and node2.
+        '''
+        self.matrix[node1, node2], self.matrix[node2, node1] = 1 - self.matrix[node1, node2], 1 - self.matrix[node2, node1]
     
     def delete_node(self, node):
         '''
@@ -82,6 +107,8 @@ class AdjacencyMatrix:
         Return the adjacency matrix as a numpy ndarray or matrix.
         '''
         return self.matrix
+    
+
 
 #%% Local complementations
 def local_complementation(A: AdjacencyMatrix, node: int):
@@ -127,7 +154,20 @@ def get_AdjacencyMatrix_from_edgelist(nr_nodes: int, edge_list: list):
     
     return AdjacencyMatrix(adjmatrix)
 
-
+def get_AdjacencyMatrix_from_string(adjstr : str):
+    '''
+    Load a AdjacencyMatrix from a string. The string can be retrieved e.g. from a txt file.
+    The string should loook like:
+        
+        [[0,...,1],[1,0,...,0],....,[...]]
+    
+    So a nested list.
+    '''
+    from numpy import matrix
+    adj = matrix(adjstr)
+    adj = adj.reshape((int(adj.size**(1/2)), int(adj.size**(1/2))))
+    
+    return AdjacencyMatrix(adj)
 
 # def apply_complementations(state, local_complementations_list):
 #     '''

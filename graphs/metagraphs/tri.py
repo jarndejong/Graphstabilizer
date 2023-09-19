@@ -16,7 +16,7 @@ inner_radius = 1
 
 
 #%% Edges
-potential_inner_edges = [(0,1),(0,2),(1,2)]
+potential_inner_edges = [(0,1),(1,2),(0,2)]
 potential_single_edges = [(0,3),(1,4),(2,5)]
 potential_double_edges = [[(0,6),(1,6)],[(1,7),(2,7)],[(0,8),(2,8)]]
 potential_triple_edges = [[(0,9),(1,9),(2,9)]]

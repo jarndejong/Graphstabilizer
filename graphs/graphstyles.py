@@ -14,9 +14,15 @@ class GraphStyle:
     def __init__(self, nr_nodes, template = None, node_positions = None, node_labels = None):
         '''
         '''
+        nr_nodes = gen_deepcopy(nr_nodes, 1)[0]
+        template = gen_deepcopy(template, 1)[0]
+        node_positions = gen_deepcopy(node_positions, 1)[0]
+        node_labels = gen_deepcopy(node_labels, 1)[0]
+        
         self.nr_nodes = nr_nodes
         if template is None:
             template = whiteonblack
+        
         if node_positions is None:
             from Graphstabilizer.graphs.layouts import ring as layout
             node_positions = layout(nr_nodes)
@@ -32,6 +38,8 @@ class GraphStyle:
         # Handling of node positions
         if not node_positions is None:
             check_are_nodepositions(self.nr_nodes, node_positions)
+        
+        
         
         self.node_labels = node_labels
         self.node_positions = node_positions
@@ -195,9 +203,10 @@ whiteonblack = {
         'background_color'          : 'k',
         'axes_limits'               : None,
         'figure_square'             : False,
+        'with_title'                : False,
         'figure_title'              : {
             'label'                 : None,
-            'fontdict'              : {'fontsize': 20, 'color': 'w', 'verticalalignment': 'baseline',
+            'fontdict'              : {'fontsize': 10, 'color': 'w', 'verticalalignment': 'baseline',
                                      # 'fontweight': 'b',
                                      # 'horizontalalignment': loc
                                      },
@@ -240,9 +249,10 @@ blackonwhite = {
         'background_color'          : 'w',
         'axes_limits'               : None,
         'figure_square'             : False,
+        'with_title'                : False,
         'figure_title'              : {
                     'label'                 : None,
-                    'fontdict'              : {'fontsize': 30, 'color': 'k', 'verticalalignment': 'baseline',
+                    'fontdict'              : {'fontsize': 10, 'color': 'k', 'verticalalignment': 'baseline',
                                              # 'fontweight': 'b',
                                              # 'horizontalalignment': loc
                                              },
@@ -263,28 +273,36 @@ blackonwhite = {
 metagraphstyle = {
     'nodes_style' :           {
         'with_labels'               : True,
-        'node_radius'               : 0.25,
-        'node_color'                : 'w',
-        'node_edgecolor'            : 'k',
-        'node_edgewidth'            : 3,
-        'label_color'               : 'k',
-        'label_fontsize'            : 14,
+        'node_radius'               : 0.3,
+        'node_color'                : 'k',
+        'node_edgecolor'            : 'w',
+        'node_edgewidth'            : 2,
+        'label_color'               : 'w',
+        'label_fontsize'            : 13,
         'tex_for_labels'            : True,
     },
     'edge_style' :          {
-        'edge_color'                : 'k',
+        'edge_color'                : 'w',
         'edge_width'                : 2,
         'edge_offset'               : 0.35,
         'edge_fontsize'             : 16,
     },
     'figure_style' :        {
-        'figure_multiplier'         : 2.5,
+        'figure_multiplier'         : 1,
         'figure_tightness'          : 0.1,
         'figure_offsetequal'        : True,
-        'background_color'          : 'w',
+        'background_color'          : 'k',
         'axes_limits'               : None,
         'figure_square'             : True,
-        'figure_title'              : None,
+        'with_title'                : False,
+        'figure_title'              : {
+                    'label'                 : None,
+                    'fontdict'              : {'fontsize': 10, 'color': 'w', 'verticalalignment': 'baseline',
+                                             # 'fontweight': 'b',
+                                             # 'horizontalalignment': loc
+                                             },
+                    'pad'                   : 10,
+                                        },
     },
     'patch_style' :        {
         'face_alpha'                : 0.2,

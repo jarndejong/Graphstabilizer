@@ -6,18 +6,20 @@ Created on Tue May 16 17:40:25 2023
 @author: jarn
 """
 # Global imports
-from numpy.linalg import matrix_rank
-from numpy import ix_, diag, zeros
+# from numpy.linalg import matrix_rank
+from numpy import ix_, zeros
 
 from numpy import ndarray
 
-from itertools import combinations_with_replacement, permutations, combinations
+from itertools import combinations_with_replacement, permutations
 
 # Local imports
 from Graphstabilizer.states import Graphstate
 from Graphstabilizer.graphs.elementary import get_AdjacencyMatrix_from_edgelist, AdjacencyMatrix
-from Graphstabilizer.graphs.graphstyles import metagraphstyle
+from Graphstabilizer.graphs.graphstyles import GraphStyle, metagraphstyle
 from Graphstabilizer.binary.linAlg import get_rank
+
+from Graphstabilizer.graphs.drawing import prepare_graphstatedrawing, draw_nodes, draw_edges
 
 from Graphstabilizer.checkers.elementary import check_is_node_index, check_is_Boolvar
 
@@ -68,16 +70,22 @@ class MetaGraphThree:
     '''
     Initialize a 3-body MetaGraph. It can be initialized from a given 
     '''
-    def __init__(self, G: Graphstate  = None, N = None, M: tuple = (0,1,2)):
+    def __init__(self, M:tuple = (0,1,2), G: Graphstate  = None, N = None, identifier = None):
         # If G is None we try to init from the N list
+        self.Marginal = M
+        
         if G is None:
             if N is None:
-                raise ValueError("Provide either a Graphstate or a list of metaneighbours")
+                if identifier is None:
+                    raise ValueError("Provide either a Graphstate, the neighbourhoods of marginal nodes, or an identifier,")
+                elif identifier is not None:
+                    self.Metagraph, self.Graphstyle,  = self.init_from_identifier(identifier)
             # Now N is a list
-            assert len(N) == 10, f"Metaneighbourlist {N} has {len(N)} entries which is not 10."
+            elif N is not None:
+                self.Metagraph, self.Graphstyle,  = self.init_from_marginal_neighbours(N)
             
             # The marginal is by default now [0,1,2]
-            self.Marginal = M
+            
             
             
         
@@ -86,7 +94,7 @@ class MetaGraphThree:
             assert len(M) == 3, f"Warning, provided marginal {M} has {len(M)} entries instead of 3."
             for node in M:
                 assert check_is_node_index(size = G.nr_qubits, node = node, raiseorFalse = 'false'), f"Warning, marginal {M} with entry {node} is not contained in graph G with {G.nr_qubits} nodes."
-            self.Metagraph, self.Metaneighours = self.init_from_Graphstate(G, M)
+            self.Metagraph, self.Graphstyle, self.Metaneighours_as_dict = self.init_from_Graphstate(G, M)
             self.Marginal = M
         
         
@@ -120,8 +128,24 @@ class MetaGraphThree:
         NewMeta =  MetaGraphThree(G = self.Metagraph, M = self.Marginal)
         
         self.Metagraph = NewMeta.Metagraph
+    
+    #%% Info functions
+    @property
+    def metaneighbours_as_list(self):
+        '''
+        '''
+        if self.Origingraphstate is None:
+            raise ValueError("No original graphstate, so no original metaneighbours.")
         
-    #%% Counting functions
+        return [self.Metaneighours_as_dict['Na'],
+                self.Metaneighours_as_dict['Nb'],
+                self.Metaneighours_as_dict['Nc'],
+                self.Metaneighours_as_dict['Nab'],
+                self.Metaneighours_as_dict['Nbc'],
+                self.Metaneighours_as_dict['Nac'],
+                self.Metaneighours_as_dict['Nabc']]
+        
+        
     def get_number_of_populated_metaneighbours(self) -> int:
         '''
         Obtain the number of metaneighbours that are populated, i.e. that are connected to the marginal.
@@ -138,35 +162,115 @@ class MetaGraphThree:
         
         return int(nr_metaneighbours)
         
+    #%% Drawing functions
+    def draw(self, axis = None, fig = None):
+        '''
+        Draw the metagraph in the given axis. If no axis is given, create a new figure and axis.
+        Returns the figure and axis.
+        '''
+        if axis is None:
+            fig, axis = prepare_graphstatedrawing(self.Graphstyle)
+        
+        draw_nodes(Graphstyle = self.Graphstyle, axis = axis)
+        
+        draw_edges(Graphstate = self.Metagraph, Graphstyle = self.Graphstyle, axis = axis)
+        
+        return fig, axis
         
     #%% Init functions    
-    def init_from_metaneighbourlist(self, N: list):
+    def init_from_marginal_neighbours(self, N: list):
         '''
-        Obtain the 3-body Metagraph for a given list of metaneighbourhoods. This list is:
-            N = [a, b, c, Na, Nb, Nc, Nab, Nbc, Nac, Nabc]
-            
-            Where 
-                a, b, c are the internal neighbourhoods of node a, b and c as list of indexes
-                Na, Nb, Nc are 
+        Obtain the 3-body Metagraph for a given list of neighbours of the marginal,
+        i.e. Na, Nb and Nc, where these are the complete neighbourhoods.
         '''
-        raise NotImplementedError()
+        a_N = set(N[0])
+        b_N = set(N[1])
+        c_N = set(N[2])
+        
+        ab = 1 in a_N
+        bc = 2 in b_N
+        ac = 2 in a_N
+        
+        Na = a_N - b_N - c_N
+        Nb = b_N.difference(a_N, c_N)
+        Nc = c_N.difference(a_N, b_N)
+        
+        Nab = a_N & b_N - c_N
+        Nbc = b_N & c_N - a_N
+        Nac = a_N & c_N - b_N
+        
+        Nabc = a_N & b_N & c_N
+        
+        # First the inner edges
+        identifier = ''.join(['1' if edge else '0' for edge in [ab,bc,ac]])
+        
+        # Then the outer edges
+        identifier += ''.join(['1' if len(neigh) > 0 else '0' for neigh in [Na, Nb, Nc, Nab, Nbc, Nac, Nabc]])
+        
+        return self.init_from_identifier(identifier)
+        
+    
+    def init_from_identifier(self, identifier: str):
+        '''
+        Obtain the 3-body marginal Metagraph from an identifier. See Metagraph.identifier for information.
+        '''
+        # Import
+        from Graphstabilizer.graphs.metagraphs.tri import labels, pos, potential_inner_edges, potential_single_edges, potential_double_edges, potential_triple_edges
+        
+        # Create an edgelist and fill based on the identifier
+        edgelist = []
+        
+        # First the inner edges
+        for i in range(3):
+            # Inner edges
+            if identifier[i] == '1':
+                edgelist.append(potential_inner_edges[i])
+            # Single edges
+            if identifier[i+3] == '1':
+                edgelist.append(potential_single_edges[i])
+            # Double edges
+            if identifier[i+6] == '1':
+                edgelist.extend(potential_double_edges[i])
+        
+        # Triple edge
+        if identifier[-1] == '1':
+            edgelist.extend(potential_triple_edges[0])
+    
+        
+        
+        adj = get_AdjacencyMatrix_from_edgelist(10,edgelist)
+        
+        G = Graphstate(graph = adj)
+        graphstyle = GraphStyle(nr_nodes = 10, template = metagraphstyle, node_labels = labels, node_positions = pos)
+        return G, graphstyle
+        
     
     def init_from_Graphstate(self, G: Graphstate, M: list):
         '''
         Obtain the 3-body Metagraph for a given Graphstate on the marginal M containing 3 nodes of G.
         '''
         # Imports
-        from Graphstabilizer.graphs.metagraphs.tri import potential_single_edges, potential_double_edges, potential_triple_edges, labels, pos
+        from Graphstabilizer.graphs.metagraphs.tri import potential_single_edges, potential_double_edges, potential_triple_edges, pos
         
         
         
         # Sort M in ascending order and get the complement C
         if type(M) == tuple:
             M = list(M)
-        M.sort()
+        # M.sort()
         Mc = tuple(a for a in range(G.nr_qubits) if a not in M)
             
-        
+        labels = [f'${M[0]}$',
+                  f'${M[1]}$',
+                  f'${M[2]}$',
+                  f'$N_{{{M[0]}}}$',
+                  f'$N_{{{M[1]}}}$',
+                  f'$N_{{{M[2]}}}$',
+                  f'$N_{{{M[0]},{M[1]}}}$',
+                  f'$N_{{{M[1]},{M[2]}}}$',
+                  f'$N_{{{M[0]},{M[2]}}}$',
+                  f'$N_{{{M[0]},{M[1]},{M[2]}}}$',
+  ]
         
         # Initialize the meta neighbourhoods
         # a, b, c = [], [], []
@@ -175,31 +279,42 @@ class MetaGraphThree:
         # Fill the meta neighbourhoods
         # First the inner nodes
         
+        
         # Then the outer nodes
         for node in Mc:
             # row = G.adj.get_matrix()[ix_([node], M)]
             
+            in_a = False
+            in_b = False
+            in_c = False
             
             
-            n_string = ''.join([str(G.adj.get_matrix()[ix_([node], M)][0,i]) for i in range(3)])
+            if node in G.get_neighbourhood(M[0]):
+                in_a = True
+            if node in G.get_neighbourhood(M[1]):
+                in_b = True
+            if node in G.get_neighbourhood(M[2]):
+                in_c = True
             
             
-            if n_string == '000':
+            
+            if not in_a and not in_b and not in_c:
                 Ne.append(node)
-            elif n_string == '100':
+            elif in_a and not in_b and not in_c:
                 Na.append(node)
-            elif n_string == '010':
+            elif not in_a and in_b and not in_c:
                 Nb.append(node)
-            elif n_string == '001':
+            elif not in_a and not in_b and in_c:
                 Nc.append(node)
-            elif n_string == '110':
+            elif in_a and in_b and not in_c:
                 Nab.append(node)
-            elif n_string == '101':
+            elif in_a and not in_b and in_c:
                 Nac.append(node)
-            elif n_string == '011':
+            elif not in_a and in_b and in_c:
                 Nbc.append(node)
-            elif n_string == '111':
+            elif in_a and in_b and in_c:
                 Nabc.append(node)
+        
         
         # Obtain the edges of the metagraph
         edgelist = []
@@ -215,7 +330,7 @@ class MetaGraphThree:
             edgelist.append((1,2))
     
         
-        # The the outer edges
+        # Then the outer edges
         if len(Na) >= 1:
             edgelist.append(potential_single_edges[0])
         if len(Nb) >= 1:
@@ -234,9 +349,25 @@ class MetaGraphThree:
         # Create the metagraph
         adj = get_AdjacencyMatrix_from_edgelist(10,edgelist)
         
-        G = Graphstate(graph = adj, node_labels = labels, node_positions = pos, graphstyle = metagraphstyle)
+        G = Graphstate(graph = adj)
+        graphstyle = GraphStyle(nr_nodes = 10, template = metagraphstyle, node_labels = labels, node_positions = pos)
+        return G, graphstyle, {'Na' : Na, 'Nb' : Nb, 'Nc' : Nc, 'Nab' : Nab, 'Nac' : Nac, 'Nbc' : Nbc, 'Nabc' : Nabc, }
+    
+    #%% Info functions
+    @property
+    def identifier(self):
+        '''
+        Get the identifier for the metagraph. This is a 10-bit string, with every entry being 0 or 1 if that (meta)-edge is connected to or not.
+        This starts with the internal edges, and subsequently the 7 outside neighbors are added.
+        '''
         
-        return G, {'Na' : Na, 'Nb' : Nb, 'Nc' : Nc, 'Nab' : Nab, 'Nac' : Nac, 'Nbc' : Nbc, 'Nabc' : Nabc, }
+        ## First the internal edges
+        identifier = ['1' if edge else '0' for edge in [self.Metagraph.contains_edge(0,1), self.Metagraph.contains_edge(2,1), self.Metagraph.contains_edge(0,2)]]
+        
+        ## Then the external edges
+        identifier.extend(['1' if len(self.Metagraph.get_neighbourhood(index)) >= 1 else '0' for index in range(3,10)])
+        
+        return ''.join(identifier)
     
 #%% Four body metagraph
 class MetaGraphFour:
