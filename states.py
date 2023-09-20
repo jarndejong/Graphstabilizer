@@ -166,7 +166,12 @@ class Graphstate:
         node2_index = self.__handle_nodeindex_param(node2)
         return node1_index in self.get_neighbourhood(node2_index)
     
-    
+    @property
+    def identifier(self):
+        '''
+        Get the identifier for the graph, which is just the binary adjacency matrix as a length-n^2 bitstring
+        '''
+        return self.adj.identifier
     
     #%% Drawing methods
     

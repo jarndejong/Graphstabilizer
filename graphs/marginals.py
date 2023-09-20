@@ -145,7 +145,13 @@ class MetaGraphThree:
                 self.Metaneighours_as_dict['Nac'],
                 self.Metaneighours_as_dict['Nabc']]
         
-        
+    @property
+    def metagraph_rank(self):
+        '''
+        The rank of the marginal, i.e. the rank of the metagraph in the original graph.
+        '''
+        return marginal_rank(self.Metagraph, M = (0,1,2))
+    
     def get_number_of_populated_metaneighbours(self) -> int:
         '''
         Obtain the number of metaneighbours that are populated, i.e. that are connected to the marginal.

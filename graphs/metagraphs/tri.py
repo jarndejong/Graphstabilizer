@@ -37,4 +37,4 @@ pos.extend([(0,0)])
 del pos_M, pos_single, pos_double
 
 #%% labels
-labels = ['$a$','$b$','$c$','$N_{a}$','$N_{b}$','$N_{c}$','$N_{ab}$','$N_{bc}$','$N_{ac}$','$N_{abc}$']
+labels = ['$A$','$B$','$C$','$a$','$b$','$c$','$ab$','$bc$','$ac$','$abc$']

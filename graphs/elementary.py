@@ -8,7 +8,7 @@ Created on Tue Mar 16 13:58:41 2021
 ## Global imports
 from numpy import outer as npouter, diagflat as npdiagflat, zeros_like as npzeros_like, diag as npdiag
 from numpy import ones_like as npones_like, matrix as npmatrix, ndarray as npndarray, zeros as npzeros
-from numpy import all as npall, logical_or as nplogical_or, delete as npdel
+from numpy import all as npall, logical_or as nplogical_or, delete as npdel, nditer as npnditer
 # from numpy import matrix as npmatrix, ndarray as npndarray, logical_and as nplogical_and,
 # from numpy import where as npwhere
 
@@ -70,6 +70,13 @@ class AdjacencyMatrix:
     @property
     def size(self):
         return self.shape[0]
+    
+    @property
+    def identifier(self):
+        '''
+        Get the identifier for the graph, which is just the binary adjacency matrix as a length-n^2 bitstring
+        '''
+        return ''.join([str(val) for val in npnditer(self.matrix)])
     
     ## Operational methods
     def add_edge(self, node1, node2):
@@ -156,7 +163,7 @@ def get_AdjacencyMatrix_from_edgelist(nr_nodes: int, edge_list: list):
 
 def get_AdjacencyMatrix_from_string(adjstr : str):
     '''
-    Load a AdjacencyMatrix from a string. The string can be retrieved e.g. from a txt file.
+    Load an AdjacencyMatrix from a string. The string can be retrieved e.g. from a txt file.
     The string should loook like:
         
         [[0,...,1],[1,0,...,0],....,[...]]
@@ -165,6 +172,18 @@ def get_AdjacencyMatrix_from_string(adjstr : str):
     '''
     from numpy import matrix
     adj = matrix(adjstr)
+    adj = adj.reshape((int(adj.size**(1/2)), int(adj.size**(1/2))))
+    
+    return AdjacencyMatrix(adj)
+
+def get_AdjacencyMatrix_from_identifier(identifier: str):
+    '''
+    Load an AdjacencyMatrix from a identifier string. 
+    This identifier string looks like the string from get_AdjacencyMAtrix_from_string with all commas and brackets removed.
+    It's thus a n^2-length list.
+    '''
+    from numpy import matrix
+    adj = matrix([entry for entry in identifier], dtype = int)
     adj = adj.reshape((int(adj.size**(1/2)), int(adj.size**(1/2))))
     
     return AdjacencyMatrix(adj)
