@@ -59,7 +59,7 @@ class AdjacencyMatrix:
             self.matrix = graph
     
     def __str__(self):
-        return self.matrix
+        return str(self.matrix)
     
     
     ## Properties

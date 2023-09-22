@@ -143,6 +143,12 @@ class Graphstate:
         '''
         return [(i,j) for i in range(self.nr_qubits) for j in range(i,self.nr_qubits) if self.adj.matrix[i,j] == 1]
     
+    def get_edgelist(self):
+        '''
+        Returns a list of the edges. Same as self.get_edges()
+        '''
+        return self.get_edges()
+    
     @property
     def nr_edges(self):
         '''
