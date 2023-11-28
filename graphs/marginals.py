@@ -7,11 +7,11 @@ Created on Tue May 16 17:40:25 2023
 """
 # Global imports
 # from numpy.linalg import matrix_rank
-from numpy import ix_, zeros
+from numpy import ix_, zeros, ones
 
-from numpy import ndarray
+from numpy import ndarray, log2
 
-from itertools import combinations_with_replacement, permutations
+from itertools import combinations_with_replacement, permutations, product, combinations
 
 # Local imports
 from Graphstabilizer.states import Graphstate
@@ -545,7 +545,7 @@ def marginal_tensor(graphstate: Graphstate, marginalsize: int, inv: str  = 'marg
             tensor_entry = marginal_rank(graphstate, marginal)
         elif inv == 'metaneighbourhood_size':
             if marginalsize == 3:
-                meta = MetaGraphThree(graphstate, marginal)
+                meta = MetaGraphThree(G = graphstate, M = marginal)
                 tensor_entry = meta.get_number_of_populated_metaneighbours()
         
         # Enter this in all the entries in the tensor associated with this marginal
@@ -555,3 +555,42 @@ def marginal_tensor(graphstate: Graphstate, marginalsize: int, inv: str  = 'marg
     
     # Return the tensor
     return T
+
+def metagraph_tensor(graphstate: Graphstate, metagraphgroups, indexing) -> ndarray:
+    '''
+    Calculate the tensor for a metagraph
+    '''
+    T = ones(shape = (graphstate.nr_qubits,)*3, dtype = 'int')
+    # Loop through every possible marginal selection
+    # for marginal in product(range(graphstate.nr_qubits), repeat = 3):
+    #     if marginal[0] == marginal[1]:
+    #         continue
+    #     elif marginal[0] == marginal[2]:
+    #         continue
+    #     elif marginal[1] == marginal[2]:
+    #         continue
+    for M in combinations_with_replacement(range(graphstate.nr_qubits), r = 3):
+        if len(set(M)) == 1:
+            
+            T[M] = 0
+            # print(T)
+            # break
+        elif len(set(M)) == 2:
+            for marginal in permutations(M):
+                T[M] = int(log2(marginal_rank(graphstate, marginal)))
+        else:
+            for marginal in permutations(M):
+                # Compute the metagraph and the identifier
+                meta = MetaGraphThree(G = graphstate, M = marginal)
+                identifier = meta.identifier
+                
+                # Loop through every group and check if the metagraph is in this group
+                for groupnr, group in enumerate(metagraphgroups):
+                    if identifier in group:
+                        # Now add the resulting number in the tensor
+                        T[marginal] = indexing[groupnr]
+                        break
+    
+    # Return the tensor
+    return T
+            
