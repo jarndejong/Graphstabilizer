@@ -11,8 +11,8 @@ import numpy as np
 
 
 #%% Params
-outer_radius = 2.5
-inner_radius = 1
+outer_radius = 2.9
+inner_radius = 1.5
 
 
 #%% Edges
@@ -28,6 +28,9 @@ pos_single = [(outer_radius*np.cos(angle*2*np.pi/3),outer_radius*np.sin(angle*2*
 
 pos_double = [(outer_radius*np.cos(angle*2*np.pi/3 + np.pi/3),outer_radius*np.sin(angle*2*np.pi/3 + np.pi/3)) for angle in [0,1,2]]
 
+
+
+
 pos = []
 pos.extend(pos_M)
 pos.extend(pos_single)
@@ -37,4 +40,4 @@ pos.extend([(0,0)])
 del pos_M, pos_single, pos_double
 
 #%% labels
-labels = ['$A$','$B$','$C$','$a$','$b$','$c$','$ab$','$bc$','$ac$','$abc$']
+node_labels = ['$A$','$B$','$C$','$a$','$b$','$c$','$ab$','$bc$','$ac$','$abc$']

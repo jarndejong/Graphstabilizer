@@ -6,14 +6,13 @@ Created on Tue Mar 16 13:58:49 2021
 """
 
 ## Global imports
-from numpy import matrix as npmatrix, zeros as npzeros, ones as npones
-from numpy import eye as npeye
+from numpy import matrix as _npmatrix, zeros as _npzeros, ones as _npones, eye as _npeye
 # from numpy import ones as npones, sum as npsum, shape as npshape, all as npall, any as npany
 
-from networkx import grid_2d_graph as nxgrid_2d_graph, Graph as nxGraph
+from networkx import grid_2d_graph as _nxgrid_2d_graph, Graph as _nxGraph
 
 ## Local imports
-from Graphstabilizer.graphs.elementary import AdjacencyMatrix
+from Graphstabilizer.graphs.elementary import AdjacencyMatrix as _AdjacencyMatrix
 
 # from Graphstabilizer.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
     
@@ -22,8 +21,8 @@ def empty_graph(nr_nodes):
     '''
     Get the adjacency matrix for an empty graph, i.e. the all-zeros matrix.
     '''
-    adjmatrix = npmatrix(npzeros((nr_nodes,nr_nodes), dtype = int))
-    return AdjacencyMatrix(adjmatrix)
+    adjmatrix = _npmatrix(_npzeros((nr_nodes,nr_nodes), dtype = int))
+    return _AdjacencyMatrix(adjmatrix)
 
 
 def twod_cluster(r, c = None):
@@ -36,9 +35,9 @@ def twod_cluster(r, c = None):
         c = r
     
     # Create a networkx graph
-    nxG = nxgrid_2d_graph(c,r)
+    nxG = _nxgrid_2d_graph(r,c)
     
-    return AdjacencyMatrix(nxG)
+    return _AdjacencyMatrix(nxG)
     
     
     
@@ -53,9 +52,9 @@ def linear_cluster(nr_nodes):
     '''
     Get the adjacency matrix of a linear cluster state of nr_qubits qubits.
     '''
-    adjmatrix = npmatrix(npeye(nr_nodes, k = 1, dtype = int) + npeye(nr_nodes, k = -1, dtype = int))
+    adjmatrix = _npmatrix(_npeye(nr_nodes, k = 1, dtype = int) + _npeye(nr_nodes, k = -1, dtype = int))
     
-    return AdjacencyMatrix(adjmatrix)
+    return _AdjacencyMatrix(adjmatrix)
 
 def line(nr_nodes):
     '''
@@ -84,7 +83,7 @@ def tree(nr_layers, branch_factor = 2):
     
     nxG = balanced_tree(branch_factor, nr_layers - 1)
 
-    return AdjacencyMatrix(nxG)
+    return _AdjacencyMatrix(nxG)
 
 def radial_out(nr_rays, nodes_per_ray):
     '''
@@ -105,11 +104,11 @@ def radial_out(nr_rays, nodes_per_ray):
             edges.append((nodes_this_ray[node_nr],nodes_this_ray[node_nr+1]))
     
     
-    nxG = nxGraph()
+    nxG = _nxGraph()
     
     nxG.add_edges_from([(edge[0],edge[1]) for edge in edges])
     
-    return AdjacencyMatrix(nxG)
+    return _AdjacencyMatrix(nxG)
 
 def star(nr_nodes):
     '''
@@ -122,9 +121,9 @@ def complete(nr_nodes):
     '''
     Get the complete graph on nr_nodes nodes.
     '''
-    adjmatrix = npmatrix(npones(shape = (nr_nodes, nr_nodes), dtype = 'int') - npeye(nr_nodes, dtype = 'int'))
+    adjmatrix = _npmatrix(_npones(shape = (nr_nodes, nr_nodes), dtype = 'int') - _npeye(nr_nodes, dtype = 'int'))
     
-    return AdjacencyMatrix(adjmatrix)
+    return _AdjacencyMatrix(adjmatrix)
 
 def GHZ(nr_nodes):
     '''

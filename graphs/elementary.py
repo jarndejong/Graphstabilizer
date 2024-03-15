@@ -6,10 +6,18 @@ Created on Tue Mar 16 13:58:41 2021
 """
 
 ## Global imports
-from numpy import outer as npouter, diagflat as npdiagflat, zeros_like as npzeros_like, diag as npdiag
-from numpy import ones_like as npones_like, matrix as npmatrix, ndarray as npndarray, zeros as npzeros
-from numpy import all as npall, logical_or as nplogical_or, delete as npdel, nditer as npnditer
-# from numpy import matrix as npmatrix, ndarray as npndarray, logical_and as nplogical_and,
+from numpy import array as _array, matrix as _matrix, diag as _diag, diagflat as _diagflat
+from numpy import ones_like as _ones_like, zeros as _zeros, zeros_like as _zeros_like
+
+
+from numpy import r_, c_, nditer as _nditer
+
+from numpy import sum as _sum, all as _all, logical_or as nplogical_or, delete as _delete,  outer as _outer, round as _round
+
+from numpy.linalg import eigvalsh as _eigvalsh
+
+
+# from numpy import matrix as _matrix, _array as _array, logical_and as nplogical_and,
 # from numpy import where as npwhere
 
 from networkx import adjacency_matrix as nxadjacency_matrix, Graph as nxGraph
@@ -37,7 +45,7 @@ class AdjacencyMatrix:
 
         else:
             # Check if numpy matrix or ndarray
-            if not (type(graph) is npmatrix or type(graph) is npndarray):
+            if not (type(graph) is _matrix or type(graph) is _array):
                 raise TypeError(f"Input adjecency matrix {graph} has wrong type {type(graph)}, it must be numpy.matrix or numpy.ndarray.")
 
             # Check is it's a square 2d matrix or array
@@ -47,13 +55,13 @@ class AdjacencyMatrix:
             if not (str(graph.dtype) == 'int64') or (str(graph.dtype) == 'int32'):
                 raise TypeError(f"Input adjecency matrix {graph} has wrong datatype {graph.dtype}, it must be 'int64' or 'int32'.")
             # Check if symmetric
-            if not npall(graph.T == graph):
+            if not _all(graph.T == graph):
                 raise ValueError(f"Input adjacency matrix {graph} is not symmetric.")
             # Check if diagonal is zeros
-            if not all(npdiag(graph) == npzeros_like(npdiag(graph))):
-                raise ValueError(f"Input adjacency matrix has non-zero diagonal: {npdiag(graph)}.")
+            if not all(_diag(graph) == _zeros_like(_diag(graph))):
+                raise ValueError(f"Input adjacency matrix has non-zero diagonal: {_diag(graph)}.")
             # Check if all entries are zero or 1
-            if not npall(nplogical_or(graph == npzeros_like(graph),graph == npones_like(graph))):
+            if not _all(nplogical_or(graph == _zeros_like(graph),graph == _ones_like(graph))):
                 raise ValueError(f"Input adjacency matrix has non-binary entries: {graph}.")
 
             self.matrix = graph
@@ -76,9 +84,27 @@ class AdjacencyMatrix:
         '''
         Get the identifier for the graph, which is just the binary adjacency matrix as a length-n^2 bitstring
         '''
-        return ''.join([str(val) for val in npnditer(self.matrix)])
+        return ''.join([str(val) for val in _nditer(self.matrix)])
     
-    ## Operational methods
+    @property
+    def Laplacian(self):
+        '''
+        Get the Laplacian given the adjacencymatrix.
+        '''
+        return _diag(_array(_sum(self.matrix, axis = 0))[0]) - self.matrix
+    
+    @property
+    def is_connected(self):
+        '''
+        Return true if the adjacency matrix represents a connected graph.
+        Uses the algebraic connectivity:
+            https://en.wikipedia.org/wiki/Algebraic_connectivity
+        '''
+        return _round(_eigvalsh(self.Laplacian)[1], decimals = 10) > 0
+    
+    
+    
+    ## Operational methods (delete and create edges and nodes)
     def add_edge(self, node1, node2):
         '''
         Add an edge between node1 and node2 if it is not already there.
@@ -105,10 +131,20 @@ class AdjacencyMatrix:
         
         check_is_node_index(self.size, node)
         
-        self.matrix = npdel(npdel(self.matrix, node, 0), node, 1)
-        self.shape = self.matrix.shape
-        self.size = self.shape[0]
+        self.matrix = _delete(_delete(self.matrix, node, 0), node, 1)
+        # self.shape = self.matrix.shape
+        # self.size = self.shape[0]
+        
+    def add_node(self, index):
+        '''
+        Add a node to the matrix.
+        '''
+        col_added = c_[self.matrix[:,0:index], _zeros((self.size,1), dtype = 'int'), self.matrix[:, index:]]
+        self.matrix = r_[col_added[0:index,:], _zeros((1, self.size+1), dtype = 'int'), col_added[index:,:]]
     
+        
+    
+    ## Return info    
     def get_matrix(self):
         '''
         Return the adjacency matrix as a numpy ndarray or matrix.
@@ -127,13 +163,13 @@ def local_complementation(A: AdjacencyMatrix, node: int):
     ## Get the column for the node to be complemented. Then take the outer product.
     old_adjacency = A.get_matrix()
     node_column = old_adjacency[:, node]
-    neighbours = npouter(node_column, node_column.T)
+    neighbours = _outer(node_column, node_column.T)
     
     # Add the locally complemented update graph and do mod 2
     new_adjacency = (old_adjacency + neighbours) % 2
     
     # Delete the diagonal
-    new_adjacency = new_adjacency - npdiagflat(new_adjacency.diagonal())
+    new_adjacency = new_adjacency - _diagflat(new_adjacency.diagonal())
     
     # Create new instance of AdjacencyMatrix
     return AdjacencyMatrix(new_adjacency)
@@ -148,7 +184,7 @@ def get_AdjacencyMatrix_from_edgelist(nr_nodes: int, edge_list: list):
     
     check_is_naturalnr(nr_nodes)
     
-    adjmatrix = npmatrix(npzeros(shape = (nr_nodes, nr_nodes), dtype = 'int64'))
+    adjmatrix = _matrix(_zeros(shape = (nr_nodes, nr_nodes), dtype = 'int64'))
     
     # Loop through every entry in the edge list
     for edge in edge_list:
@@ -205,7 +241,7 @@ def get_AdjacencyMatrix_from_identifier(identifier: str):
 #     This adds a 1 to the correcponsing positions in the adjecency matrix
 #     '''
 #     # Make the adder
-#     B = npzeros_like(adjecency_matrix, dtype = int)
+#     B = _zeros_like(adjecency_matrix, dtype = int)
 #     B[ctrl , targ] = B[targ , ctrl] = 1
     
 #     ## Return with adder

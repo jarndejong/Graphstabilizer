@@ -8,7 +8,14 @@ from numpy.linalg import norm
 from math import copysign, tan, atan, sin, sqrt, pi
 
 #%%
+import matplotlib
 
+
+matplotlib.rcParams.update({
+    "text.usetex": False,
+    # "font.fontname": "Academy Engraved LET"
+})
+# matplotlib.rcParams['text.latex.preamble'] = r'\boldmath'
 #%% Init functions
 def calculate_axes_limits(Graphstyle):
     '''
@@ -20,6 +27,7 @@ def calculate_axes_limits(Graphstyle):
         For y it works similarly
         
     If equaloffset = True, the offset for both x and y is set to the max of the two
+    If xtoyratio is not None, the limits will be adjusted so to have the fixed ratio
     '''
     
     
@@ -44,23 +52,45 @@ def calculate_axes_limits(Graphstyle):
         d = coor[1] - coor[0] + coorradii[0] + coorradii[1]
         
 
-        offsets.append((coorradii[0] + Graphstyle.patch_style['tightness']*coorradii[0] + Graphstyle.patch_style['padding'] + Graphstyle.figure_style['figure_tightness']*d, coorradii[1] + Graphstyle.figure_style['figure_tightness']*d))
-
-    
+        offsets.append(
+                            (
+                            Graphstyle.patch_style['tightness']*coorradii[0] +
+                            Graphstyle.patch_style['padding'] +
+                            Graphstyle.figure_style['figure_tightness']*d,
+                            Graphstyle.patch_style['tightness']*coorradii[1] +
+                            Graphstyle.patch_style['padding'] +
+                            Graphstyle.figure_style['figure_tightness']*d
+                            )
+                        )
+        
     if Graphstyle.figure_style['figure_offsetequal']:
         offsets = [[max(max(offsets[0]), max(offsets[1]))] * 2] * 2
-    
-    
-
     lims = [] 
     
-    for coor, offset in zip(minmaxes, offsets):
-        lims.append([coor[0] - offset[0], coor[1] + offset[1]])
+    if Graphstyle.figure_style['figure_ratio'] is None:
+        for coor, offset in zip(minmaxes, offsets):
+            lims.append([coor[0] - offset[0], coor[1] + offset[1]])
+    else:
+        x0, x1 = minmaxes[0][0] - offsets[0][0], minmaxes[0][1] + offsets[0][1]
+        y0, y1 = minmaxes[1][0] - offsets[1][0], minmaxes[1][1] + offsets[1][1]
         
-    if Graphstyle.figure_style['figure_square']:
+        dx, dy = (x1 - x0), (y1 - y0)
         
-        lims = [[min(lims[0] + lims[1]), max(lims[0] + lims[1])]] * 2
+        xr, yr = (x0 + x1 )/2, (y0 + y1)/2
         
+        current_r = dx/dy
+        
+        # from numpy import argmax as _argmax
+        # longest_side = _argmax((x1 - x0, y1 - y0))
+        
+        if Graphstyle.figure_style['figure_ratio'] >= current_r:
+            x0, x1 = xr - Graphstyle.figure_style['figure_ratio']*dy/2, xr + Graphstyle.figure_style['figure_ratio']*dy/2
+
+        elif Graphstyle.figure_style['figure_ratio'] < current_r:
+            y0, y1 = yr - dx/(2*Graphstyle.figure_style['figure_ratio']), dx/(2*Graphstyle.figure_style['figure_ratio'])
+        
+        lims = [[x0, x1], [y0,y1]]
+    
     return lims
 
 #%% Preparation    
@@ -87,6 +117,7 @@ def prepare_graphstatedrawing(Graphstyle):
     axis = fig.add_subplot(111)
     
     axis.set(xlim=xlim, ylim=ylim, aspect=1)
+    
     axis.axis('off')
 
 
@@ -97,6 +128,7 @@ def prepare_graphstatedrawing(Graphstyle):
     # Set the background color
     fig.patch.set_facecolor(Graphstyle.figure_style['background_color'])
     axis.patch.set_facecolor(Graphstyle.figure_style['background_color'])
+
     
     # Plot the title
     if Graphstyle.figure_style['with_title']:
@@ -109,6 +141,7 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
     '''
     Prepare a figure with multiple sublots for drawings.
     Returns a figure and a list of axes.
+    If gridspec mapping is provided, it is used in the subplot_mosaic routine; please still probide a nr_rows and nr_cols for the figure size. fill_order will be ignored.
     '''
     
     if not isinstance(Graphstyles, list):
@@ -116,7 +149,7 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
             Graphstyles = [Graphstyles]*nr_rows*nr_columns
         elif nr_plots is not None:
             Graphstyles = [Graphstyles]*nr_plots
-        else: raise ValueError("When graphstyles is not a list, provide either the nr of plots, of the nr of columns and nr of rows.")
+        else: raise ValueError("When graphstyles is not a list, provide either the nr of plots, or the nr of columns and nr of rows.")
     
     # Determine number of rows and columns
     nr_drawings = len(Graphstyles)
@@ -158,15 +191,14 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
     
     
     
-    axes = []
+    
     
     if gridspec_mapping is None:
+        axes = []
         graphstate_index = 0
         if fill_order == 'column':
             for col_nr in range(nr_columns):
                 for row_nr in range(nr_rows):
-                    
-                    
                     axis = fig.add_subplot(gs[row_nr, col_nr])
                     
                     # If no axislimits are given, calculate them
@@ -226,25 +258,33 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
                     if graphstate_index == len(Graphstyles):
                         return fig, axes
     else:
-        for Graphstyle, mapping in zip(Graphstyles, gridspec_mapping):
-            axis = fig.add_subplot(gs[mapping[0], mapping[1]])
-            
+        axesdict = fig.subplot_mosaic(gridspec_mapping)
+        
+        
+        # This assumes that axes are labelled "A", "B", .... Will fail otherwise
+        axes = [axesdict[chr(65 + i)] for i in range(len(axesdict.keys()))]
+        
+        if len(axes) != len(Graphstyles):
+            raise ValueError(f"gridspec_mapping specifies {len(axes)} subplots but {len(Graphstyles)} graphstyles are provided.")
+        
+        for ax, graphstyle in zip(axes, Graphstyles):
             # If no axislimits are given, calculate them
-            axeslimits = Graphstyle.figure_style['axes_limits']
+            axeslimits = graphstyle.figure_style['axes_limits']
             
             if axeslimits is None:
-                axeslimits = calculate_axes_limits(Graphstyle)
+                # raise ValueError("Please provide axeslimits when using a gridspec_mapping!")
+                axeslimits = calculate_axes_limits(graphstyle)
 
             # Unpack the axis limits
             xlim, ylim = axeslimits[0], axeslimits[1]
+            print(xlim, ylim)
+            ax.set(xlim=xlim, ylim=ylim, aspect=1)
+            # ax.set(aspect=1)
+            ax.axis('off')
             
-            axis.set(xlim=xlim, ylim=ylim, aspect=1)
-            axis.axis('off')
+            ax.patch.set_facecolor(graphstyle.figure_style['background_color'])
             
-            axis.patch.set_facecolor(Graphstyle.figure_style['background_color'])
-            
-            axes.append(axis)
-                   
+                
                     
     return fig, axes
         
@@ -260,50 +300,38 @@ def draw_nodes(Graphstyle, axis):
         labels = [f'{i}' for i in range(Graphstyle.nr_nodes)]
         
     nodesstyle = Graphstyle.nodes_style
-    if type(nodesstyle) == dict:
-        # Plot every node iteratively
-        for node_index, position in enumerate(Graphstyle.node_positions):
-            # Make a circle at the node position
-            circle = Circle(position, radius = nodesstyle['node_radius'], 
-                            facecolor = nodesstyle['node_color'], 
-                            edgecolor = nodesstyle['node_edgecolor'],
-                            linewidth = nodesstyle['node_edgewidth'])
-            
-            # Add the node to the axis
-            axis.add_patch(circle)
-            
-            # Make the label if the graphstyle wants it
-            if nodesstyle['with_labels']:
-                axis.text(x = position[0], y = position[1], 
-                          s = labels[node_index], 
-                          fontsize = nodesstyle['label_fontsize'],
-                          ha="center",
-                          va="center_baseline", 
-                          usetex = nodesstyle['tex_for_labels'], 
-                          color = nodesstyle['label_color'])
-    elif type(nodesstyle) == list:
-        assert len(nodesstyle) == Graphstyle.nr_nodes, f"Graph style has instructions for {len(nodesstyle)} nodes but graphstayle has {Graphstyle.nr_nodes} nodes."
-        # Plot every node iteratively
-        for node_index, position in enumerate(Graphstyle.node_positions):
-            # Make a circle at the node position
-            circle = Circle(position, radius = nodesstyle[node_index]['node_radius'], 
-                            facecolor = nodesstyle[node_index]['node_color'], 
-                            edgecolor = nodesstyle[node_index]['node_edgecolor'],
-                            linewidth = nodesstyle[node_index]['node_edgewidth'])
-            
-            # Add the node to the axis
-            axis.add_patch(circle)
-            
-            # Make the label if the graphstyle wants it
-            if nodesstyle[node_index]['with_labels']:
-                axis.text(x = position[0], y = position[1], 
-                          s = labels[node_index], 
-                          fontsize = nodesstyle[node_index]['label_fontsize'],
-                          ha="center",
-                          va="center_baseline", 
-                          usetex = nodesstyle[node_index]['tex_for_labels'], 
-                          color = nodesstyle[node_index]['label_color'])
 
+    assert len(nodesstyle) == Graphstyle.nr_nodes, f"Graph style has instructions for {len(nodesstyle)} nodes but graphstayle has {Graphstyle.nr_nodes} nodes."
+    
+    # Plot every node iteratively
+    for node_index, position in enumerate(Graphstyle.node_positions):
+        draw_node(position, nodesstyle[node_index], labels[node_index], axis)
+
+def draw_node(position, nodestyle, label, axis):
+    '''
+    Draw a single node given by the node axis.
+    '''
+    # Make a circle at the node position
+    circle = Circle(position, radius = nodestyle['node_radius'], 
+                    facecolor = nodestyle['node_color'], 
+                    edgecolor = nodestyle['node_edgecolor'],
+                    linewidth = nodestyle['node_edgewidth'],
+                    linestyle = nodestyle['node_edgestyle'])
+    
+    # Add the node to the axis
+    axis.add_patch(circle)
+    
+    # Make the label if the graphstyle wants it
+    if nodestyle['with_labels']:
+        axis.text(x = position[0] + nodestyle['label_xoffset'], y = position[1] + nodestyle['label_yoffset'], 
+                  s = label, 
+                  fontsize = nodestyle['label_fontsize'],
+                  fontname = nodestyle['label_fontname'],
+                  ha="center",
+                  va="center_baseline", 
+                  usetex = nodestyle['tex_for_labels'], 
+                  color = nodestyle['label_color'])
+    
 #%% Edges
 def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None):
     '''
@@ -317,17 +345,18 @@ def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None):
                    'params': [angle, anglecoor, direction]}
     '''
     edgestyle = Graphstyle.edge_style
-    if type(edgestyle) == dict:
+    if isinstance(edgestyle, dict):
         if edgesmap is None:
             # Init an arc direction so that the arc directions can get flipped (from positive to negative angle)
             flip = True
             # Now loop through all edges
             for edge in Graphstate.get_edges():
-                flip = __draw_edge(Graphstyle, axis, edgestyle, edge, arcflip = flip)
+                flip = __draw_edge(Graphstyle, axis, edge, arcflip = flip, max_node_radius=max(Graphstyle.get_nodes_radii()))
         else:
             for edge, edgemap in zip(Graphstate.get_edges(), edgesmap):
-                __draw_edge(Graphstyle, axis, edgestyle, edge, edgemap)
-    elif type(edgestyle) == list:
+                __draw_edge(Graphstyle, axis, edge, edgemap)
+                
+    elif isinstance(edgestyle, list):
         assert len(edgestyle) == len(Graphstate.get_edges()), f"Graph style has instructions for {len(edgestyle)} edges but graphstate has {len(Graphstate.get_edges())} edges."
         flip = True
         for edge_index, edge in enumerate(Graphstate.get_edges()):
@@ -336,23 +365,20 @@ def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None):
             else:
                 __draw_edge(Graphstyle, axis, edgestyle[edge_index], edge, edgemap[edge_index])
 
-def __draw_edge(Graphstyle, axis, edgestyle, edge, edgemap = None, arcflip = None, max_node_radius = 0.1):
+def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node_radius = 0.1):
     '''
     Draw the edge for the given Graphstate and fiven edgemap. If edgemap is 
     '''
-    # Get indices instead of labels
-    # if Graphstyle.node_labels is not None:
-    #     # Update the edge to have the indices instead of the labels as the entries
-    #     print(edge)
-    #     print(Graphstyle.node_labels)
-    #     edge = (Graphstyle.node_labels.index(Graphstyle._handle_nodeindex_param(edge[0])), Graphstyle.node_labels.index(Graphstyle._handle_nodeindex_param(edge[1])))
-    #     print(edge)
-    # Get the indices of all the nodes that are not in the current edge
+    edgestyle = Graphstyle.edge_style
     other_nodes = list(range(Graphstyle.nr_nodes))
     other_nodes.pop(max(edge))
     other_nodes.pop(min(edge))
     
     other_nodes_positions = [Graphstyle.node_positions[index] for index in other_nodes]
+    other_nodes_radii = Graphstyle.get_nodes_radii(other_nodes)
+    
+    # Get the radii of the nodes that the edge connects.
+    r1, r2 = Graphstyle.get_nodes_radii(edge)
     
     # Get the vectors of the two nodes of the edge
     x1 = matrix(Graphstyle.node_positions[edge[0]]).T
@@ -374,11 +400,11 @@ def __draw_edge(Graphstyle, axis, edgestyle, edge, edgemap = None, arcflip = Non
     else:
         # Check if any nodes intersect with the straight edge
         
-        if not _do_nodes_intersect_straightedge(other_nodes_positions, phat, pd, x1, max_node_radius):
+        if not _do_nodes_intersect_straightedge(other_nodes_positions, other_nodes_radii, phat, pd, x1, Graphstyle.edge_style['nodeedgetightness'], Graphstyle.edge_style['nodeedgepadding']):
             # Now we can plot a straight edge
             # Calculate the two points to draw the line from and to
             # These are the node positions adjusted by the offset given in the graphstyle, i.e. x1 and x2 plys/minus phat for the offset length
-            p1,p2 = x1 + (edgestyle['edge_offset'])*phat, x2 - (edgestyle['edge_offset'])*phat
+            p1,p2 = x1 + (r1 + edgestyle['edge_offset'])*phat, x2 - (r2 + edgestyle['edge_offset'])*phat
             
             # Plot the line
             axis.plot([p1[0,0], p2[0,0]], [p1[1,0],p2[1,0]], color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])
@@ -394,15 +420,18 @@ def __draw_edge(Graphstyle, axis, edgestyle, edge, edgemap = None, arcflip = Non
             # Loop through all angles to find an arc that doesn't intersect with any node. Also loop through both directions to flip
             from itertools import product
             for angle, direction in product([15,20,25,30,35,45], [arcflip, not arcflip]):
-    
+                #
+                # print(f"At angle {angle}")
                 
                 # Calculate the circle params of the arc
                 [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstyle.node_positions[edge[0]],
                                                                       Graphstyle.node_positions[edge[1]], angle=((-1)**direction * angle), 
-                                                                      offset = edgestyle['edge_offset'])
+                                                                      offset = edgestyle['edge_offset'], node_radii = (r1,r2), crossing_radius = max_node_radius)
                 
                 # Check if no nodes intersect with the arcedge
-                if not _do_nodes_intersects_arcedge(other_nodes_positions, xr, yr, r, theta1, theta2, max_node_radius, anglecoor = 'deg'):
+                if not _do_nodes_intersects_arcedge(other_nodes_positions, other_nodes_radii, xr, yr, r, theta1, theta2, anglecoor = 'deg',
+                                                    tightness = Graphstyle.edge_style['nodeedgetightness'], padding = Graphstyle.edge_style['nodeedgepadding']):
+                    # print(f"Arc does not intersect for {theta1},{theta2} and {max_node_radius} with {xr},{yr} as midpoint of circle {r}")
                     # Make the edge with the current circle params of the arc if the if statement passes
                     arc = Arc((xr,yr), width = 2*r, height = 2*r, 
                                         theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])
@@ -416,7 +445,7 @@ def __draw_edge(Graphstyle, axis, edgestyle, edge, edgemap = None, arcflip = Non
                 # Calculate the circle params of the arc
                 [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstyle.node_positions[edge[0]],
                                                                       Graphstyle.node_positions[edge[1]], angle=((-1)**arcflip * 15), 
-                                                                      offset = edgestyle['edge_offset'])
+                                                                      offset = edgestyle['edge_offset'], node_radii = (r1,r2), crossing_radius = max_node_radius)
                 arc = Arc((xr,yr), width = 2*r, height = 2*r, 
                                     theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])    
             # Plot the edge, flip the arc direction
@@ -426,11 +455,13 @@ def __draw_edge(Graphstyle, axis, edgestyle, edge, edgemap = None, arcflip = Non
     # Return the flip direction        
     return arcflip
 
+# def _plot_straightedge()
+
 #%% Edge plots
 # def plot_straight_edge(Graphstate, axis, graphsyle, edge)
 
 #%% Hulls/collections of nodes
-def draw_path_around_nodes( Graphstyle, node_selection: list, axis):
+def draw_path_around_nodes(Graphstyle, node_selection: list, axis):
     '''
     Draw a patch around a selection of nodes in the graphstate.
     '''
@@ -449,10 +480,6 @@ def draw_path_around_nodes( Graphstyle, node_selection: list, axis):
     _draw_contour(Graphstyle.patch_style, extreme_nodes_positions, extreme_nodes_radii, axis)
     
     
-
-
-
-
 
 def _draw_contour(patch_style, node_positions, radii, axis):
     '''
@@ -497,9 +524,14 @@ def _draw_contour(patch_style, node_positions, radii, axis):
         norm_next = norm(to_next)
         
         # Calculate the angle between these two vectors
-        rel_angle = 2*pi - arccos(inner(to_prev.T, to_next.T)[0,0]/(norm_prev * norm_next))
+        # We have to calculate the inner product separately; 
+        # for vectors in the same direction (i.e. for a contour of 2 points)
+        # we can have machine precision have the inner product be slightly above 1 (e.g. 1.00000002)
+        # We have to make sure that it falls within the range -1, 1 for the arccos to work properly
+        # We do this by taking the minimum of the product and 1, and then the maximum of that and -1
         
-        
+        rel_angle = 2*pi - arccos(max(min(inner(to_prev.T, to_next.T)[0,0]/(norm_prev * norm_next), 1), -1))
+         
         
         # Get the incoming angle of the arc
         inc_angle = arccos((radii[i] - radii[i-1])/norm_prev)
@@ -553,7 +585,7 @@ def _calculate_node_edge_dist(node, p1, p2):
     Calculate the distance from a node to 
     '''
 
-def _calculate_arc_params(pos_1, pos_2, angle = 15, offset = 0, anglecoor = 'deg'):
+def _calculate_arc_params(pos_1, pos_2, angle = 15, offset = 0, node_radii = (0,0), crossing_radius = 0.01, anglecoor = 'deg'):
     '''
     Calculate the parameters needed for a arc drawing (i.e. edge) from a node to a node.
     The arc is a circle segment from pos_1 to pos_2, 
@@ -564,13 +596,13 @@ def _calculate_arc_params(pos_1, pos_2, angle = 15, offset = 0, anglecoor = 'deg
         where
         xr,yr: the center of the circle
         r: the radius of the circle
-        t1, t2: the angles of the beginning and end of the circle arc in radians
-    '''
+        t1, t2: the angles of the beginning and end of the circle arc in radians or degree, as specified by anglecoor
+    '''    
     # Import necessary math functions
     if angle == 0:
         angle = 0.001
     elif angle < 0:
-        return _calculate_arc_params(pos_2, pos_1, angle = -angle, offset = offset, anglecoor = anglecoor)
+        return _calculate_arc_params(pos_2, pos_1, angle = -angle, offset = offset, node_radii = node_radii, crossing_radius = crossing_radius, anglecoor = anglecoor)
     
     
     conv = 180/pi
@@ -600,13 +632,20 @@ def _calculate_arc_params(pos_1, pos_2, angle = 15, offset = 0, anglecoor = 'deg
     theta1 = (atan((y1 - yr)/(x1 - xr)) + pi/2 - copysign(pi/2,x1 - xr)) % (2*pi)
     theta2 = (atan((y2 - yr)/(x2 - xr)) + pi/2 - copysign(pi/2,x2 - xr)) % (2*pi)
     
+    
+    # Calculate the angle offset to incorporate the radius and the edge offset
+    angle_offset = (
+        2*sin(node_radii[0]/(2*r)) + 2*sin(offset/(2*r)),
+        2*sin(node_radii[1]/(2*r)) + 2*sin(offset/(2*r)),
+        )
+    
     # Check if the arc goes from theta1 to theta2 or the other way around
     if abs(theta1 - theta2) > pi:
         # The arc is now going in the `wrong` direction, so we have to add the offset in the wrong direction
         # Add the offset
-        theta1, theta2 = theta1 - (offset/r), theta2 + (offset/r)
+        theta1, theta2 = theta1 - angle_offset[0], theta2 + angle_offset[1]
     else:
-        theta1, theta2 = theta1 - (offset/r), theta2 + (offset/r)
+        theta1, theta2 = theta1 - angle_offset[0], theta2 + angle_offset[1]
     
     if anglecoor == 'deg':
         return [xr, yr], r, [conv*theta2, conv*theta1]
@@ -614,7 +653,7 @@ def _calculate_arc_params(pos_1, pos_2, angle = 15, offset = 0, anglecoor = 'deg
     return [xr, yr], r, [theta2, theta1]
 
 
-def _do_nodes_intersect_straightedge(node_positions, phat, pd, x1, node_radius):
+def _do_nodes_intersect_straightedge(nodes_positions, nodes_radii, phat, pd, x1, tightness = 1.1, padding = 0):
     '''
     For every node perform the following
     Calculate if the node with vector e (with origin at x1!) with radius node_radius intersects 
@@ -624,7 +663,7 @@ def _do_nodes_intersect_straightedge(node_positions, phat, pd, x1, node_radius):
     If no node intersects: return False
     '''
     #Loop through every node in the node positions
-    for node, node_position in enumerate(node_positions):
+    for node, (node_position, node_radius) in enumerate(zip(nodes_positions, nodes_radii)):
 
         e = matrix(node_position).T - x1
         # We decompose e into p and p_ort. Then e = <e,p>p + <e,port>port, if p and port are normalized.
@@ -646,7 +685,7 @@ def _do_nodes_intersect_straightedge(node_positions, phat, pd, x1, node_radius):
     
         # If the edge intersects with a node, that means the node position is closer to the line than the node radius.
         # b**2 = epor @ epor.T, so we check this against the square of the node radius. (So that we also only get positive values)
-        inportrange = (epor.T @ epor)[0,0] < node_radius**2
+        inportrange = (epor.T @ epor)[0,0] < (tightness*(padding + node_radius))**2
         
         
         # If both truth values are True, we have a intersecting node. Then we should return True
@@ -655,7 +694,7 @@ def _do_nodes_intersect_straightedge(node_positions, phat, pd, x1, node_radius):
     return False
 
 
-def _do_nodes_intersects_arcedge(node_positions, xr, yr, r, theta1, theta2, max_node_radius, anglecoor = 'deg'):
+def _do_nodes_intersects_arcedge(nodes_positions, nodes_radii, xr, yr, r, theta1, theta2, anglecoor = 'deg', tightness = 1.1, padding = 0):
     '''
     For every node perform the following
     Calculate if the node with vector e (with origin at x1!) with radius node_radius intersects 
@@ -666,22 +705,36 @@ def _do_nodes_intersects_arcedge(node_positions, xr, yr, r, theta1, theta2, max_
     '''
     
     # Loop through all nodes to check if they intersect with the arc
-    for node, node_position in enumerate(node_positions):
+    for node, (node_position, node_radius) in enumerate(zip(nodes_positions, nodes_radii)):
         # Calculate distance from middle of circle, d
         # This is square root of (x - xr)**2 + (y - yr)**2
         d = sqrt((node_position[0] - xr)**2 + (node_position[1] - yr)**2)
         
         # If the distance of the node to the midpoint is in the range of the arc radius +- the node radius, it might intersect
-        if d < r + max_node_radius and d > r - max_node_radius:
+        if abs(d - r) <= tightness*(padding + node_radius):
             # print(f'node {node} has distance {d} from point {xr, yr} for circle with radius {r}')
             # Now check if the point is actually in the slice of the circle made by the arc.
             point_angle = (atan((node_position[1] - yr)/(node_position[0] - xr)) + pi/2 - copysign(pi/2,node_position[0] - xr)) % (2*pi)
-            # print(f'the point makes angle {point_angle} while the thetas are {theta1, theta2}')
-            # Convert to degree if necessary
-            if anglecoor == 'deg':
-                point_angle *= (180/pi)
             
+            # Convert to degree if necessary
+            
+            
+            conv = 1
+            
+            if anglecoor == 'deg':
+                conv = 180/pi
+            
+            point_angle *= conv
+            
+            
+            if theta1 >= theta2:
+                if abs(theta1 - theta2) >= 180:
+                    
+                    theta2 += 2*pi*conv
+            # print(f'the point makes angle {point_angle} while the thetas are {theta1, theta2}')
             if point_angle > min(theta1, theta2) and point_angle < max(theta1, theta2):
+                return True
+            if point_angle + 2*pi*conv > min(theta1, theta2) and point_angle + 2*pi*conv < max(theta1, theta2):
                 return True
     return False
 

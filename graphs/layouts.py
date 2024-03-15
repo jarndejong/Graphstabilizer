@@ -86,23 +86,38 @@ def star(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
     '''
     return radial_out(nr_nodes - 1, 1, radius, offset_angle, direction)
 
-def ring(nr_qubits, radius = 1, offset_angle = 0, direction = 'clockwise'):
+def ring(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
     '''
     Return a list of positions where all nodes are on a ring or circle around the origin with the given radius. The nodes are all equally distant from each other.
     The offset_angle is the angle (in radians) that the first node makes with the x-axis.
     '''
     
-    pos = radial_out(nr_rays = nr_qubits, nodes_per_ray = 1, node_dist = radius, offset_angle = offset_angle, direction = direction)
+    pos = radial_out(nr_rays = nr_nodes, nodes_per_ray = 1, node_dist = radius, offset_angle = offset_angle, direction = direction)
     
     return pos[1:]
 
+def circle(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
+    '''
+    See ring.
+    '''
+    return ring(nr_nodes, radius, offset_angle, direction)
 
-
-def cut_ring(nr_qubits, radius = 1, nr_holes = 1, start_of_cut_angle = 0, direction = 'clockwise'):
+def cut_ring(nr_nodes, radius = 1, nr_holes = 1, start_of_cut_angle = 0, direction = 'clockwise'):
     '''
     Return a list of positions where all nodes are on a ring or circle around the origin with the given radius.
     '''
-    pos = ring(nr_qubits + nr_holes, offset_angle = start_of_cut_angle, direction = direction)
+    pos = ring(nr_nodes + nr_holes, offset_angle = start_of_cut_angle, direction = direction)
     
     return pos[nr_holes:]
+
+
+def shift_positions(positions, shift):
+    '''
+    Shift the given positions given by the shift = (x,y).
+    Returns a new list of positions.
+    '''
+    pos2 = []
+    for pos in positions:
+        pos2.append((pos[0]+shift[0],pos[1] + shift[1]))
     
+    return pos2

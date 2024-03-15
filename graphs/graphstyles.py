@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue May 16 15:10:27 2023
@@ -9,9 +8,215 @@ from Graphstabilizer.checkers.graphs import check_are_nodelabels, check_are_node
 from Graphstabilizer.checkers.elementary import check_is_node_index
 
 
+#%% Templates   
+whiteonblack = {
+    'nodes_style' :           {
+        'with_labels'               : True,
+        'node_radius'               : 0.15,
+        'node_color'                : 'k',
+        'node_edgecolor'            : 'w',
+        'node_edgewidth'            : 2,
+        'node_edgestyle'            : '-',
+        'label_fontname'            : 'AppleMyungjo',
+        'label_color'               : 'w',
+        'label_fontsize'            : 14,
+        'label_xoffset'             : 0,
+        'label_yoffset'             : 0,
+        'tex_for_labels'            : True,
+    },
+    'edge_style' :          {
+        'edge_color'                : 'w',
+        'edge_width'                : 2,
+        'edge_offset'               : 0.1,
+        'edge_fontsize'             : 16,
+        'nodeedgepadding'           : 0.05,
+        'nodeedgetightness'         : 1.1,
+    },
+    'figure_style' :        {
+        'figure_multiplier'         : 2,
+        'figure_tightness'          : 0.01,
+        'figure_offsetequal'        : True,
+        'background_color'          : 'k',
+        'axes_limits'               : None,
+        'figure_ratio'              : None,
+        'with_title'                : False,
+        'figure_title'              : {
+            'label'                 : None,
+            'fontdict'              : {'fontsize': 10, 'color': 'w', 'verticalalignment': 'baseline',
+                                     # 'fontweight': 'b',
+                                     # 'horizontalalignment': loc
+                                     },
+                                        },
+    },
+    'patch_style' :        {
+        'face_alpha'                : 0.5,
+        'face_color'                : '#aee5fc',
+        'edge_color'                : '#aee5fc',
+        'edge_width'                : 2,
+        'edge_style'                : '-',
+        'padding'                   : 0.1,
+        'tightness'                 : 1.05
+    },
+    }
 
+
+
+blackonwhite = {
+    'nodes_style' :           {
+        'with_labels'               : True,
+        'node_radius'               : 0.1,
+        'node_color'                : 'w',
+        'node_edgecolor'            : 'k',
+        'node_edgewidth'            : 2,
+        'node_edgestyle'            : '-',
+        'label_fontname'            : 'AppleMyungjo',
+        'label_color'               : 'k',
+        'label_fontsize'            : 14,
+        'label_xoffset'             : 0,
+        'label_yoffset'             : 0,
+        'tex_for_labels'            : False,
+    },
+    'edge_style' :          {
+        'edge_color'                : 'k',
+        'edge_width'                : 2,
+        'edge_offset'               : 0.2,
+        'edge_fontsize'             : 16,
+        'nodeedgepadding'           : 0.05,
+        'nodeedgetightness'         : 1.1,
+    },
+    'figure_style' :        {
+        'figure_multiplier'         : 2,
+        'figure_tightness'          : 0.01,
+        'figure_offsetequal'        : True,
+        'background_color'          : 'w',
+        'axes_limits'               : None,
+        'figure_ratio'              : None,
+        'with_title'                : False,
+        'figure_title'              : {
+                    'label'                 : None,
+                    'fontdict'              : {'fontsize': 10, 'color': 'k', 'verticalalignment': 'baseline',
+                                             # 'fontweight': 'b',
+                                             # 'horizontalalignment': loc
+                                             },
+                    'pad'                   : 10,
+                                        },
+    },
+    'patch_style' :        {
+        'face_alpha'                : 0.5,
+        'face_color'                : 'r',
+        'edge_color'                : 'r',
+        'edge_width'                : 2,
+        'edge_style'                : '-',
+        'padding'                   : 0.05,
+        'tightness'                 : 1.2
+    },
+    }
+
+metawhiteonblack = {
+    'nodes_style' :           {
+        'with_labels'               : True,
+        'node_radius'               : 0.4,
+        'node_color'                : 'k',
+        'node_edgecolor'            : 'w',
+        'node_edgewidth'            : 2,
+        'node_edgestyle'            : '-',
+        'label_fontname'            : 'AppleMyungjo',
+        'label_color'               : 'w',
+        'label_fontsize'            : 15,
+        'label_xoffset'             : 0,
+        'label_yoffset'             : 0,
+        'tex_for_labels'            : False,
+    },
+    'edge_style' :          {
+        'edge_color'                : 'w',
+        'edge_width'                : 2,
+        'edge_offset'               : 0.25,
+        'edge_fontsize'             : 16,
+        'nodeedgepadding'           : 0.05,
+        'nodeedgetightness'         : 1.1,
+    },
+    'figure_style' :        {
+        'figure_multiplier'         : 1,
+        'figure_tightness'          : 0.01,
+        'figure_offsetequal'        : True,
+        'background_color'          : 'k',
+        'axes_limits'               : None,
+        'figure_ratio'              : 1,
+        'with_title'                : False,
+        'figure_title'              : {
+                    'label'                 : None,
+                    'fontdict'              : {'fontsize': 10, 'color': 'w', 'verticalalignment': 'baseline',
+                                             # 'fontweight': 'b',
+                                             # 'horizontalalignment': loc
+                                             },
+                    'pad'                   : 10,
+                                        },
+    },
+    'patch_style' :        {
+        'face_alpha'                : 0.5,
+        'face_color'                : '#aee5fc',
+        'edge_color'                : '#aee5fc',
+        'edge_width'                : 2,
+        'edge_style'                : '-',
+        'padding'                   : 0.2,
+        'tightness'                 : 1.05
+    },
+    }
+
+metablackonwhite = {
+    'nodes_style' :           {
+        'with_labels'               : True,
+        'node_radius'               : 0.4,
+        'node_color'                : 'w',
+        'node_edgecolor'            : 'k',
+        'node_edgewidth'            : 2,
+        'node_edgestyle'            : '-',
+        'label_fontname'            : 'AppleMyungjo',
+        'label_color'               : 'k',
+        'label_fontsize'            : 15,
+        'label_xoffset'             : 0,
+        'label_yoffset'             : 0,
+        'tex_for_labels'            : False,
+    },
+    'edge_style' :          {
+        'edge_color'                : 'k',
+        'edge_width'                : 3,
+        'edge_offset'               : 0.08,
+        'edge_fontsize'             : 16,
+        'nodeedgepadding'           : 0.05,
+        'nodeedgetightness'         : 1.1,
+    },
+    'figure_style' :        {
+        'figure_multiplier'         : 1,
+        'figure_tightness'          : 0,
+        'figure_offsetequal'        : True,
+        'background_color'          : 'k',
+        'axes_limits'               : None,
+        'figure_ratio'              : 1,
+        'with_title'                : False,
+        'figure_title'              : {
+                    'label'                 : None,
+                    'fontdict'              : {'fontsize': 10, 'color': 'k', 'verticalalignment': 'baseline',
+                                             # 'fontweight': 'b',
+                                             # 'horizontalalignment': loc
+                                             },
+                    'pad'                   : 10,
+                                        },
+    },
+    'patch_style' :        {
+        'face_alpha'                : 0.5,
+        'face_color'                : '#aee5fc',
+        'edge_color'                : '#aee5fc',
+        'edge_width'                : 2,
+        'edge_style'                : '-',
+        'padding'                   : 0.1,
+        'tightness'                 : 1.05
+    },
+    }
+
+#%% Class definition
 class GraphStyle:
-    def __init__(self, nr_nodes, template = None, node_positions = None, node_labels = None):
+    def __init__(self, nr_nodes, template = None, node_positions = None, node_labels = None, title = None):
         '''
         '''
         nr_nodes = gen_deepcopy(nr_nodes, 1)[0]
@@ -57,14 +262,24 @@ class GraphStyle:
     def set_node_radius(self, node_index, radius):
         self.nodes_style[node_index]['node_radius'] = radius
     
-    def set_nodes_radii(self, node_radii: list):
+    def set_nodes_radii(self, node_radii: list | float, indices: list = None):
         '''
+        Set the radii of the nodes given in the node_radii.
+        node_radii is either a:
+            float: radius to be given to all nodes in indices
+            list: list of radii. If no indices provided, must be of length nr_nodes.
+        indices, optional:
+            if not None, indices must be of same length as node_radii if that is a list.
         '''
+        if indices is None:
+            indices = list(range(self.nr_nodes))
+            
         if type(node_radii) == float:
-            node_radii = [node_radii]*self.nr_nodes
-        assert self.nr_nodes == len(node_radii), f"Graphstyle has {self.nr_nodes} nodes but the given radii list has {len(node_radii)} entries."
+            node_radii = [node_radii]*len(indices)
+            
+        assert len(indices) == len(node_radii), f"{len(node_radii)} radii provided but {len(indices)} indices provided."
         
-        for node, radius in enumerate(node_radii):
+        for node, radius in zip(indices, node_radii):
             assert isinstance(radius, (int, float)), f"Radius {radius} for node {node} is of type {type(radius)}, not int or float."
             self.set_node_radius(node, radius)
     
@@ -72,15 +287,56 @@ class GraphStyle:
     def set_node_color(self, node_index, color):
         self.nodes_style[node_index]['node_color'] = color
     
-    def set_nodes_colors(self, node_colors: list):
-        '''
-        '''
-        assert self.nr_nodes == len(node_colors), f"Graphstyle has {self.nr_nodes} nodes but the given colors list has {len(node_colors)} entries."
-        
-        for node, color in enumerate(node_colors):
-            assert isinstance(color, (str, tuple, list)), f"Color {color} for node {node} is of type {type(color)}, not list, typ or str."
-            self.set_node_color(node, color)
+    def turn_off_node_fill(self, node_index):
+        self.node_color(node_index, 'none')
     
+    def turn_off_nodes_fill(self):
+        self.set_nodes_colors(node_colors = ['none']*self.nr_nodes)
+
+    def set_nodes_colors(self, node_colors: list | str | float, indices: list = None):
+        '''
+        Set the colors of the nodes given in the node_colors.
+        Node_colors is either a:
+            str: color specification like 'g' or 'b' or '#F0F0F0. Color will be applied to all nodes in indices
+            float: color specification as rgb value like (0.5,0.5,0.5). Color will be applied to all nodes in indices
+            list: list of color specifications. If no indices provided, must be of length nr_nodes.
+        indices, optional:
+            if not None, indices must be of same length as node_colors if that is a list.
+        '''
+        
+        if indices is None:
+            indices = list(range(self.nr_nodes))
+
+        if not isinstance(node_colors, list):
+            node_colors = [node_colors]*len(indices)
+            
+        assert len(node_colors) == len(indices), f"{len(node_colors)} colors provided but {len(indices)} indices provided."
+        
+        for node, color in zip(indices, node_colors):
+            assert isinstance(color, (str, tuple)), f"Color {color} for node {node} is of type {type(color)}, not list or tup."
+            self.set_node_color(node, color)
+    # Labels
+    def turn_on_labels(self):
+        '''
+        Turn on all the labels to be printed
+        '''
+        self.set_nodes_properties('with_labels', True)
+    
+    def turn_off_labels(self):
+        '''
+        Turn off all the labels to be printed
+        '''
+        self.set_nodes_properties('with_labels', False)
+    
+    def toggle_labels(self):
+        '''
+        Toggle the labels between being printed or not. Toggles on the first node label being printed or not.
+        '''
+        if self.nodes_style[0]['with_labels']:
+            self.turn_off_labels()
+        else:
+            self.turn_on_labels()
+
     ## Other
     def set_node_property(self, node_index: int, property_name: str, property_value):
         '''
@@ -89,11 +345,29 @@ class GraphStyle:
         
         self.nodes_style[node_index][property_name] = property_value
     
-    def set_nodes_property(self, property_name: str = None, property_values = None, nodes_indices = None):
+    def set_nodes_properties(self, property_name: str, property_values, nodes_indices = None):
         '''
+        Set a node property in the graph style for one or more nodes to a given value.
+
+        Parameters
+        ----------
+        property_name : str
+            The property to set.
+        property_values : any
+            The value to which the property is set. 
+            Either a single value that is applied to all nodes, or a list of values of length nodes_indices.
+        nodes_indices : int, list or, None. Optional.
+            The nodes to which to set the property value. The default is None.
+            If None provided, all nodes are set.
+        Returns
+        -------
+        None.
+
         '''
         if nodes_indices is None:
             nodes_indices = list(range(self.nr_nodes))
+        elif nodes_indices is int:
+            nodes_indices = [nodes_indices]
             
         if not isinstance(property_values, list):
             property_values = [property_values]*len(nodes_indices)
@@ -116,7 +390,9 @@ class GraphStyle:
     def get_node_radius(self, node_index):
         return self.nodes_style[node_index]['node_radius']
     
-    def get_nodes_radii(self, node_indices: list):
+    def get_nodes_radii(self, node_indices: list = None):
+        if node_indices is None:
+            node_indices = range(self.nr_nodes)
         return [self.get_node_radius(node) for node in node_indices]
     
     def labels_to_graphx_format(self):
@@ -161,6 +437,7 @@ class GraphStyle:
         
         return node_positions
     
+    
     #%% Edges
     
     #%% Internal functions
@@ -178,143 +455,7 @@ class GraphStyle:
             raise TypeError(f"Can't find the node labeled {node} because it's not a string or int.")
         return node_index
     
-#%% Templates   
-whiteonblack = {
-    'nodes_style' :           {
-        'with_labels'               : True,
-        'node_radius'               : 0.15,
-        'node_color'                : 'k',
-        'node_edgecolor'            : 'w',
-        'node_edgewidth'            : 2,
-        'label_color'               : 'w',
-        'label_fontsize'            : 14,
-        'tex_for_labels'            : True,
-    },
-    'edge_style' :          {
-        'edge_color'                : 'w',
-        'edge_width'                : 2,
-        'edge_offset'               : 0.2,
-        'edge_fontsize'             : 16,
-    },
-    'figure_style' :        {
-        'figure_multiplier'         : 2,
-        'figure_tightness'          : 0.01,
-        'figure_offsetequal'        : True,
-        'background_color'          : 'k',
-        'axes_limits'               : None,
-        'figure_square'             : False,
-        'with_title'                : False,
-        'figure_title'              : {
-            'label'                 : None,
-            'fontdict'              : {'fontsize': 10, 'color': 'w', 'verticalalignment': 'baseline',
-                                     # 'fontweight': 'b',
-                                     # 'horizontalalignment': loc
-                                     },
-                                        },
-    },
-    'patch_style' :        {
-        'face_alpha'                : 0.1,
-        'face_color'                : 'r',
-        'edge_color'                : 'r',
-        'edge_width'                : 2,
-        'edge_style'                : '-',
-        'padding'                   : 0,
-        'tightness'                 : 1.05
-    },
-    }
-
-
-
-blackonwhite = {
-    'nodes_style' :           {
-        'with_labels'               : True,
-        'node_radius'               : 0.15,
-        'node_color'                : 'w',
-        'node_edgecolor'            : 'k',
-        'node_edgewidth'            : 2,
-        'label_color'               : 'k',
-        'label_fontsize'            : 14,
-        'tex_for_labels'            : True,
-    },
-    'edge_style' :          {
-        'edge_color'                : 'k',
-        'edge_width'                : 2,
-        'edge_offset'               : 0.2,
-        'edge_fontsize'             : 16,
-    },
-    'figure_style' :        {
-        'figure_multiplier'         : 2,
-        'figure_tightness'          : 0.01,
-        'figure_offsetequal'        : True,
-        'background_color'          : 'w',
-        'axes_limits'               : None,
-        'figure_square'             : False,
-        'with_title'                : False,
-        'figure_title'              : {
-                    'label'                 : None,
-                    'fontdict'              : {'fontsize': 10, 'color': 'k', 'verticalalignment': 'baseline',
-                                             # 'fontweight': 'b',
-                                             # 'horizontalalignment': loc
-                                             },
-                    'pad'                   : 10,
-                                        },
-    },
-    'patch_style' :        {
-        'face_alpha'                : 0.1,
-        'face_color'                : 'r',
-        'edge_color'                : 'r',
-        'edge_width'                : 2,
-        'edge_style'                : '-',
-        'padding'                   : 0,
-        'tightness'                 : 1.05
-    },
-    }
-
-metagraphstyle = {
-    'nodes_style' :           {
-        'with_labels'               : True,
-        'node_radius'               : 0.3,
-        'node_color'                : 'k',
-        'node_edgecolor'            : 'w',
-        'node_edgewidth'            : 2,
-        'label_color'               : 'w',
-        'label_fontsize'            : 13,
-        'tex_for_labels'            : True,
-    },
-    'edge_style' :          {
-        'edge_color'                : 'w',
-        'edge_width'                : 2,
-        'edge_offset'               : 0.35,
-        'edge_fontsize'             : 16,
-    },
-    'figure_style' :        {
-        'figure_multiplier'         : 1,
-        'figure_tightness'          : 0.1,
-        'figure_offsetequal'        : True,
-        'background_color'          : 'k',
-        'axes_limits'               : None,
-        'figure_square'             : True,
-        'with_title'                : False,
-        'figure_title'              : {
-                    'label'                 : None,
-                    'fontdict'              : {'fontsize': 10, 'color': 'w', 'verticalalignment': 'baseline',
-                                             # 'fontweight': 'b',
-                                             # 'horizontalalignment': loc
-                                             },
-                    'pad'                   : 10,
-                                        },
-    },
-    'patch_style' :        {
-        'face_alpha'                : 0.2,
-        'face_color'                : 'r',
-        'edge_color'                : 'r',
-        'edge_width'                : 0.5,
-        'edge_style'                : '-',
-        'padding'                   : 0,
-        'tightness'                 : 1.05
-    },
-    }
-
+#%% External helper functions
 def gen_deepcopy(original, nr_copies):
     from copy import deepcopy
     copies = []
