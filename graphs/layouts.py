@@ -1,11 +1,15 @@
 from numpy import linspace as nplinspace, meshgrid as npmeshgrid
 from numpy import cos as npcos, sin as npsin, pi as nppi
 
-def oned_cluster(nr_nodes):
+def oned_cluster(nr_nodes, spacing = 1):
     '''
-    Returns a list of positions for a 1d grid layout.
+    Returns a list of positions for a 1d grid layout, 
+    where the y coordinate is 0 and the nodes are all spacing apart in the x axis, starting from x=0
     '''
-    return [(x, 0) for x in range(nr_nodes)]
+    return [(spacing * x, 0) for x in range(nr_nodes)]
+
+def line(nr_nodes, spacing = 1):
+    return oned_cluster(nr_nodes, spacing)
 
 def twod_cluster(columns, rows, row_sep = 1, col_sep = 1):
     '''

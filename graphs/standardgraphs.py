@@ -24,6 +24,11 @@ def empty_graph(nr_nodes):
     adjmatrix = _npmatrix(_npzeros((nr_nodes,nr_nodes), dtype = int))
     return _AdjacencyMatrix(adjmatrix)
 
+def empty(nr_nodes):
+    '''
+    See empty_graph
+    '''
+    return empty_graph(nr_nodes)
 
 def twod_cluster(r, c = None):
     '''
@@ -37,10 +42,7 @@ def twod_cluster(r, c = None):
     # Create a networkx graph
     nxG = _nxgrid_2d_graph(r,c)
     
-    return _AdjacencyMatrix(nxG)
-    
-    
-    
+    return _AdjacencyMatrix(nxG)   
 
 def oned_cluster(nr_nodes):
     '''
@@ -71,6 +73,12 @@ def ring(nr_nodes):
     adjmatrix.matrix[0,nr_nodes - 1] = adjmatrix.matrix[nr_nodes - 1, 0] = 1
     
     return adjmatrix
+
+def circle(nr_nodes):
+    '''
+    See ring
+    '''
+    return ring(nr_nodes)
 
 def tree(nr_layers, branch_factor = 2):
     '''
@@ -109,6 +117,7 @@ def radial_out(nr_rays, nodes_per_ray):
     nxG.add_edges_from([(edge[0],edge[1]) for edge in edges])
     
     return _AdjacencyMatrix(nxG)
+
 
 def star(nr_nodes):
     '''

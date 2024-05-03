@@ -64,14 +64,14 @@ whiteonblack = {
 blackonwhite = {
     'nodes_style' :           {
         'with_labels'               : True,
-        'node_radius'               : 0.1,
+        'node_radius'               : 0.15,
         'node_color'                : 'w',
         'node_edgecolor'            : 'k',
-        'node_edgewidth'            : 2,
+        'node_edgewidth'            : 1,
         'node_edgestyle'            : '-',
         'label_fontname'            : 'AppleMyungjo',
         'label_color'               : 'k',
-        'label_fontsize'            : 14,
+        'label_fontsize'            : 10,
         'label_xoffset'             : 0,
         'label_yoffset'             : 0,
         'tex_for_labels'            : False,
@@ -79,7 +79,7 @@ blackonwhite = {
     'edge_style' :          {
         'edge_color'                : 'k',
         'edge_width'                : 2,
-        'edge_offset'               : 0.2,
+        'edge_offset'               : 0.1,
         'edge_fontsize'             : 16,
         'nodeedgepadding'           : 0.05,
         'nodeedgetightness'         : 1.1,

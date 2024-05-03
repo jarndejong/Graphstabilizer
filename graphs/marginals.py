@@ -13,6 +13,10 @@ from numpy import ndarray, log2
 
 from numpy import hstack
 
+from numpy import round as npround
+
+from numpy.linalg import eigvalsh
+
 from itertools import combinations_with_replacement, permutations, product, combinations
 
 from galois import GF
@@ -97,37 +101,31 @@ def get_original_vector(graphstate, M, basis_element):
     
     for index, value in zip(M, basis_element):        
         # Add X element
-        vector[graphstate.nr_qubits + index, 0] = int(value)
+        vector[index, 0] = int(value)
         # Add Z elements
-        vector[:graphstate.nr_qubits] += int(value) * graphstate.adj.get_matrix()[:, index]
+        vector[graphstate.nr_qubits:] += int(value) * graphstate.adj.get_matrix()[:, index]
     
     return vector % 2
 
-def interestingness(graph, M):
+def surviving_element_basis(graphstate: Graphstate, M: tuple):
     '''
+    Obtain bit-representations of the surviving elements of the reduced stabilizer. 
+    Only returns the basis elements, from which an arbitrary (binary) linear combination can be build.
+    So returns exactly marginal_dimension(G, M) elements.
     '''
-    dim = marginal_dimension(graph, M)
+    # Remove double items from M
+    M = tuple(set(M))
     
-    if dim < 1:
-        return dim
+    Mc = tuple(a for a in range(graphstate.nr_qubits) if a not in M)
     
-    RHS = []
-    for subset in combinations(M, r = len(M) - 1):
-        # print(subset)
-        compl = tuple(a for a in range(graph.nr_qubits) if a not in subset)
-        
-        N = field(graph.adj.get_matrix()[ix_(compl, subset)]).null_space()
-        # Ns.append(N)
-        
-        for v in N:
-            RHS.append(get_original_vector(graph, subset, v))
     
-    if len(RHS) == 0:
-        return dim        
+    basis = field(graphstate.adj.get_matrix()[ix_(Mc, M)]).null_space()
     
-    K = field(hstack(RHS))
+    surviving = []
+    for v in basis:
+        surviving.append(get_original_vector(graphstate, M, v))
     
-    return dim + K.null_space().shape[0] - K.shape[1]
+    return surviving
 
 
 #%% Interesting marginals
@@ -159,8 +157,48 @@ def interestingness_marginal(graphstate: Graphstate, M: tuple):
     K = field(hstack(RHS))
     
     return dim + K.null_space().shape[0] - K.shape[1]
+
+def marginal_is_MLS(graphstate: Graphstate, M: tuple):
+    '''
+    A marginal is a MLS (minimal local set) if its dimension is not 0 and if the dimensions of all its submarginals are 0.
+    We know that this is either 0,1 or 2.
+    Returns 'False' or 'True'
+    '''
+    dim = marginal_dimension(graphstate, M)
+    
+    if dim < 1:
+        return False
+    
+    for subset in combinations(M, r = len(M) - 1):
+        # print(subset)
+        if marginal_dimension(graphstate, subset) != 0:
+            return False
+
+    return True    
+
+def marginals_is_type1MLS(graphstate: Graphstate, M: tuple):
+    '''
+    A type one MLS has dimension 1 in addition to being an MLS.
+    '''
+    dim = marginal_dimension(graphstate, M)
+    if dim != 1:
+        return False
+    if marginal_is_MLS(graphstate, M):
+        return True
+    else: return False
         
-        
+    
+def marginals_is_type2MLS(graphstate: Graphstate, M: tuple):
+    '''
+    A type one MLS has dimension 1 in addition to being an MLS.
+    '''
+    dim = marginal_dimension(graphstate, M)
+    if dim != 2:
+        return False
+    if marginal_is_MLS(graphstate, M):
+        return True
+    else: return False
+
 #%% 2-body meta-graph
 class MetaGraphTwo:
     '''
@@ -1031,4 +1069,131 @@ def metagraph_tensor(graphstate: Graphstate, metagraphgroups, indexing) -> ndarr
     
     # Return the tensor
     return T
-            
+
+def marginal_tensor_product(graphstate: Graphstate, marginalsize: int) -> float:
+    '''
+    
+    '''
+    T = marginal_tensor(graphstate, marginalsize)
+    
+    if marginalsize == 2:
+        eigs = npround(eigvalsh(T), decimals = 5)
+    elif marginalsize == 3:
+        eigs = npround(eigvalsh(sum(T)), decimals = 5)
+    elif marginalsize == 4:
+        eigs = npround(eigvalsh(sum(sum(T))), decimals = 5)
+    elif marginalsize == 5:
+        eigs = npround(eigvalsh(sum(sum(sum(T)))), decimals = 5)
+    elif marginalsize == 6:
+        eigs = npround(eigvalsh(sum(sum(sum(sum(T))))), decimals = 5)
+    
+    
+    prod = prod_of_nonzero(eigs)
+    
+    return prod
+
+#%% Measurement based invariants
+def measured_invariant_tensor(graphstate: Graphstate, marginalsize: int) -> dict:
+    '''
+    '''
+    out = {}
+    
+    for i in range(graphstate.size):
+        # X
+        GX = Graphstate(get_AdjacencyMatrix_from_edgelist(graphstate.size, graphstate.get_edgelist()))
+        GX.X_measurement(i)
+        
+        prod = marginal_tensor_product(GX, marginalsize)
+        
+        
+        if prod in out.keys():
+            out[prod] += 1
+        else:
+            out[prod] = 1
+        
+        # Y
+        GY = Graphstate(get_AdjacencyMatrix_from_edgelist(graphstate.size, graphstate.get_edgelist()))
+        GY.Y_measurement(i)
+        
+        prod = marginal_tensor_product(GY, marginalsize)
+        
+        if prod in out.keys():
+            out[prod] += 1
+        else:
+            out[prod] = 1
+        
+        # Z
+        GZ = Graphstate(get_AdjacencyMatrix_from_edgelist(graphstate.size, graphstate.get_edgelist()))
+        GZ.Z_measurement(i)
+        
+        prod = marginal_tensor_product(GZ, marginalsize)
+        
+        if prod in out.keys():
+            out[prod] += 1
+        else:
+            out[prod] = 1
+        
+        
+    return out
+
+def measured_invariant_list(graphstate: Graphstate, marginalsize: int) -> dict:
+    '''
+    For a graphstate G, if a node is measured in a Pauli basis, the post-measurement state is a graphstate, or LC equivalent to a graph state. 
+    In general, this post-measurement state is not from a constant class/orbit for different graphstates in the original graph state orbit.
+    However, for a measurement of X, Y, Z on any given node, the 3-post measurement states will belong to 1,2 or 3 orbits/classes. This selection is LC invariant.
+    This extends towards an X, Y, Z measurement on all the nodes together, for a total of 1 - 3n different orbits.
+    This function calculates the marginal_dimensionlist of all 3n post-measurement states and returns a dict, 
+    where the keys are the different options for the dimensionlist that are found, and the values are the number of occurances.
+    '''
+    out = {}
+    
+    for i in range(graphstate.size):
+        # X
+        GX = Graphstate(get_AdjacencyMatrix_from_edgelist(graphstate.size, graphstate.get_edgelist()))
+        GX.X_measurement(i)
+        
+        TX = marginal_dimensionlist(GX, marginalsize)
+        
+        TX = ','.join([str(j) for j in TX])
+        
+        if TX in out.keys():
+            out[TX] += 1
+        else:
+            out[TX] = 1
+        
+        # Y
+        GY = Graphstate(get_AdjacencyMatrix_from_edgelist(graphstate.size, graphstate.get_edgelist()))
+        GY.Y_measurement(i)
+        
+        TY = marginal_dimensionlist(GY, marginalsize)
+        
+        TY = ','.join([str(j) for j in TY])
+        
+        if TY in out.keys():
+            out[TY] += 1
+        else:
+            out[TY] = 1
+        
+        # Z
+        GZ = Graphstate(get_AdjacencyMatrix_from_edgelist(graphstate.size, graphstate.get_edgelist()))
+        GZ.Z_measurement(i)
+        
+        TZ = marginal_dimensionlist(GZ, marginalsize)
+        
+        TZ = ','.join([str(j) for j in TZ])
+        
+        if TZ in out.keys():
+            out[TZ] += 1
+        else:
+            out[TZ] = 1
+        
+        
+    return out   
+
+#%% Helper function
+def prod_of_nonzero(iterable, precision = 0.001):
+    running_prod = 1
+    for entry in iterable:
+        if abs(entry) > precision:
+            running_prod *= entry
+    return running_prod      

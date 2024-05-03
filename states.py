@@ -4,6 +4,8 @@
 
 from Graphstabilizer.checkers.elementary import check_is_Boolvar, check_is_node_index
 
+from Graphstabilizer.binary.Paulistrings import bit_to_string
+from Graphstabilizer.graphs.elementary import bitvector_from_neighbourhood
 # from Graphstabilizer.graphs.graphstyles import blackonwhite
 #%% Graph state class
 class Graphstate:
@@ -193,6 +195,26 @@ class Graphstate:
         See self.adj.is_connected for more details.
         '''
         return self.adj.is_connected
+    
+    #%% Generators
+    @property
+    def generators(self):
+        '''
+        Return the canonical generators as bitvectors.
+        '''
+        gens = []
+        for i in range(self.size):
+            gens.append(bitvector_from_neighbourhood(self.size, i, self.get_neighbourhood(i)))
+        
+        return gens
+    
+    @property
+    def generators_as_string(self):
+        '''
+        Return the canonical generators as Pauli strings.
+        '''
+        return [bit_to_string(gen) for gen in self.generators]
+
     #%% Drawing methods
     
     

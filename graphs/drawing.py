@@ -2,7 +2,7 @@
 # from netorkx imporxt draw_nodes
 from matplotlib.patches import Circle, Arc
 from matplotlib.pyplot import figure
-from numpy import array, matrix, inner, sin, cos, arccos, concatenate, linspace, rad2deg, ceil
+from numpy import array, matrix, inner, sin, cos, arccos, concatenate, linspace, rad2deg, ceil, isclose
 from scipy.spatial import ConvexHull
 from numpy.linalg import norm
 from math import copysign, tan, atan, sin, sqrt, pi
@@ -714,7 +714,14 @@ def _do_nodes_intersects_arcedge(nodes_positions, nodes_radii, xr, yr, r, theta1
         if abs(d - r) <= tightness*(padding + node_radius):
             # print(f'node {node} has distance {d} from point {xr, yr} for circle with radius {r}')
             # Now check if the point is actually in the slice of the circle made by the arc.
-            point_angle = (atan((node_position[1] - yr)/(node_position[0] - xr)) + pi/2 - copysign(pi/2,node_position[0] - xr)) % (2*pi)
+            # If the x coordinates are the same, you divide by zero. To circumvent, manually set the angle to pi/2 or -pi/2
+            if isclose(node_position[0], xr):
+                if node_position[1] > yr:
+                    point_angle = pi/2
+                elif node_position[1] < yr:
+                    point_angle = -pi/2
+            else:
+                point_angle = (atan((node_position[1] - yr)/(node_position[0] - xr)) + pi/2 - copysign(pi/2,node_position[0] - xr)) % (2*pi)
             
             # Convert to degree if necessary
             

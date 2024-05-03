@@ -9,6 +9,7 @@ Created on Tue Mar 16 13:58:41 2021
 from numpy import array as _array, matrix as _matrix, diag as _diag, diagflat as _diagflat
 from numpy import ones_like as _ones_like, zeros as _zeros, zeros_like as _zeros_like
 
+from numpy import ndarray as _ndarray
 
 from numpy import r_, c_, nditer as _nditer
 
@@ -45,7 +46,7 @@ class AdjacencyMatrix:
 
         else:
             # Check if numpy matrix or ndarray
-            if not (type(graph) is _matrix or type(graph) is _array):
+            if not (type(graph) is _matrix or type(graph) is _ndarray):
                 raise TypeError(f"Input adjecency matrix {graph} has wrong type {type(graph)}, it must be numpy.matrix or numpy.ndarray.")
 
             # Check is it's a square 2d matrix or array
@@ -224,6 +225,21 @@ def get_AdjacencyMatrix_from_identifier(identifier: str):
     
     return AdjacencyMatrix(adj)
 
+
+
+#%%
+def bitvector_from_neighbourhood(nr_qubits, index, neighbourhood):
+    '''
+    Return the length-2n bitvector for the given node from its index and its neighbourhood and the total number of qubits.
+    '''
+    vector = _zeros((nr_qubits * 2, 1), dtype = 'int')
+    
+    # Add X element
+    vector[index, 0] = int(1)
+    # Add Z elements
+    vector[nr_qubits:] += _array([int(1) if i in neighbourhood else int(0) for i in range(nr_qubits)]).reshape((1,-1)).T
+    
+    return vector % 2
 # def apply_complementations(state, local_complementations_list):
 #     '''
 #     Apply local complementations on the state for each node in the list of complementations.
