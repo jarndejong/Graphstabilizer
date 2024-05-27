@@ -262,7 +262,7 @@ class GraphStyle:
     def set_node_radius(self, node_index, radius):
         self.nodes_style[node_index]['node_radius'] = radius
     
-    def set_nodes_radii(self, node_radii: list | float, indices: list = None):
+    def set_nodes_radii(self, node_radii: list, indices: list = None):
         '''
         Set the radii of the nodes given in the node_radii.
         node_radii is either a:
@@ -293,7 +293,7 @@ class GraphStyle:
     def turn_off_nodes_fill(self):
         self.set_nodes_colors(node_colors = ['none']*self.nr_nodes)
 
-    def set_nodes_colors(self, node_colors: list | str | float, indices: list = None):
+    def set_nodes_colors(self, node_colors: list, indices: list = None):
         '''
         Set the colors of the nodes given in the node_colors.
         Node_colors is either a:
