@@ -7,14 +7,11 @@ Created on Tue Mar 16 13:58:49 2021
 
 ## Global imports
 from numpy import matrix as _npmatrix, zeros as _npzeros, ones as _npones, eye as _npeye
-# from numpy import ones as npones, sum as npsum, shape as npshape, all as npall, any as npany
 
-from networkx import grid_2d_graph as _nxgrid_2d_graph, Graph as _nxGraph
 
 ## Local imports
 from Graphstabilizer.graphs.elementary import AdjacencyMatrix as _AdjacencyMatrix
 
-# from Graphstabilizer.checkers.graphs import check_is_AdjacencyMatrixinstance, check_is_networkxinstance
     
 #%%
 def empty_graph(nr_nodes):
@@ -30,19 +27,42 @@ def empty(nr_nodes):
     '''
     return empty_graph(nr_nodes)
 
+# def twod_cluster(r, c = None):
+#     '''
+#     Get the adjacency matrix of a 2d cluster state with r rows and c columns. 
+#     If no c is provided, a square matrix is returned (i.e. c=r).
+#     Returns an adjacencymatrix object.
+#     '''
+#     if c is None:
+#         c = r
+    
+#     # Create a networkx graph
+#     nxG = _nxgrid_2d_graph(r,c)
+    
+#     return _AdjacencyMatrix(nxG)   
 def twod_cluster(r, c = None):
     '''
-    Get the adjacency matrix of a 2d cluster state with r rows and c columns. 
-    If no c is provided, a square matrix is returned (i.e. c=r).
-    Returns an adjacencymatrix object.
+    Get the adjacency matrix of a 2d cluster state with r rows and c columns.
+    If no c is provided, a square matrix is returned (i.e. c = r).
+    Returns an adjacencymatrix object
     '''
     if c is None:
         c = r
     
-    # Create a networkx graph
-    nxG = _nxgrid_2d_graph(r,c)
+    # Create an empty graph first
+    Adj = empty_graph(r * c)
     
-    return _AdjacencyMatrix(nxG)   
+    # Create horizontal lines
+    for row in range(r):
+        for column in range(c - 1):
+            Adj.add_edge(row*c + column, row*c + column + 1)
+    
+    # Create vertical lines
+    for column in range(c):
+        for row in range(r - 1):
+            Adj.add_edge(row*c + column, (row+1)*c + column)
+    
+    return Adj
 
 def oned_cluster(nr_nodes):
     '''

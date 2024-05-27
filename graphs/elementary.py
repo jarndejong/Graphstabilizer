@@ -21,7 +21,6 @@ from numpy.linalg import eigvalsh as _eigvalsh
 # from numpy import matrix as _matrix, _array as _array, logical_and as nplogical_and,
 # from numpy import where as npwhere
 
-from networkx import adjacency_matrix as nxadjacency_matrix, Graph as nxGraph
 
 
 ## Local imports
@@ -41,8 +40,8 @@ class AdjacencyMatrix:
 
         
         # Check if matrix is a nx graph
-        elif type(graph) is nxGraph:
-            self.matrix = AdjacencyMatrix(nxadjacency_matrix(graph, dtype = 'int64').todense()).matrix
+        # elif type(graph) is nxGraph:
+            # self.matrix = AdjacencyMatrix(nxadjacency_matrix(graph, dtype = 'int64').todense()).matrix
 
         else:
             # Check if numpy matrix or ndarray

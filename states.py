@@ -361,7 +361,7 @@ class Graphstate:
             basis: str of Pauli basis, i.e. 'I', 'X', 'Y' or 'Z'.
             node: int of the node index to be measured.
             deletion: delete the measured node or not; if not deleted is set to an isolated node. (Default True)
-        If 'I' is given as a basis, no measurement is performed, irregardless of deletion is True or False the node is not deleted.
+        If 'I' is given as a basis, no measurement is performed, regardless of deletion is True or False the node is not deleted.
         '''
         # from Graphstabilizer.checkers.elementary import check_is_naturalnr, check_is_node_index, check_is_Boolvar
         from Graphstabilizer.checkers.Paulis import check_is_Paulistr
