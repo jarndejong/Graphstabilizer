@@ -1,5 +1,5 @@
 from Graphstabilizer.graphs.elementary import AdjacencyMatrix
-from networkx.classes.graph import Graph as nxgraph
+# from networkx.classes.graph import Graph as nxgraph
 
 def check_is_AdjacencyMatrixinstance(adj, raiseorFalse = 'raise'):
     '''
@@ -20,24 +20,24 @@ def check_is_AdjacencyMatrixinstance(adj, raiseorFalse = 'raise'):
             return False
         else: return True
     
-def check_is_networkxinstance(graph, raiseorFalse = 'raise'):
-    '''
-    Checks if the input is a networkx simple graph.
+# def check_is_networkxinstance(graph, raiseorFalse = 'raise'):
+#     '''
+#     Checks if the input is a networkx simple graph.
     
-    raiseorFalse is 'raise' or 'false' and decides if the function throws an exception or if it returns false.
-    '''
-    if not (raiseorFalse == 'raise') or (raiseorFalse == 'false'):
-        raise ValueError(f"Input {raiseorFalse} should be either 'raise' or 'false'.")
+#     raiseorFalse is 'raise' or 'false' and decides if the function throws an exception or if it returns false.
+#     '''
+#     if not (raiseorFalse == 'raise') or (raiseorFalse == 'false'):
+#         raise ValueError(f"Input {raiseorFalse} should be either 'raise' or 'false'.")
     
-    if raiseorFalse == 'raise':
-        if type(graph) is not networkx.classes.graph.Graph:
-            raise TypeError(f"Input graph is not type networkx.classes.graph.Graph but {type(graph)}.")
-        else: return
+#     # if raiseorFalse == 'raise':
+#         # if type(graph) is not networkx.classes.graph.Graph:
+#             # raise TypeError(f"Input graph is not type networkx.classes.graph.Graph but {type(graph)}.")
+#         # else: return
     
-    elif raiseorFalse == 'false':
-        if type(graph) is not networkx.classes.graph.Graph:
-            return False
-        else: return True
+#     elif raiseorFalse == 'false':
+#         if type(graph) is not networkx.classes.graph.Graph:
+#             return False
+#         else: return True
 
 def check_are_nodelabels(graphsize, node_labels, raiseorFalse = 'raise'):
     '''
