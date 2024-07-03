@@ -83,6 +83,20 @@ def radial_out(nr_rays, nodes_per_ray, node_dist = 1, offset_angle = 0, directio
     
     return positions
 
+def ellipse(nr_nodes, a = 1, b = 1, offset_angle = 0, direction = 'clockwise'):
+    '''
+    Return a list of positions on an ellipse with horizontal axis a and vertical axis b.
+    The points are calculated as (x,y) = (a*cos(phi), b*sin(phi)), 
+    where phi is equally spaced around the circle.
+    offset_angle (default 0) sets the angle that the first node makes with the x axis
+    if direction == 'clockwise', the points go in clockwise order, otherwise anti-clockwise.
+    '''
+    angles = nplinspace(offset_angle, 2*nppi + offset_angle, num = nr_nodes, endpoint = False)
+    if direction == 'clockwise':
+        angles = nplinspace(2*nppi + offset_angle, offset_angle, num = nr_nodes, endpoint = False)
+    
+    return [(a*npcos(angle), b*npsin(angle)) for angle in angles]
+    
 def star(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
     '''
     Get the star graph, with one node in the middle
@@ -90,15 +104,22 @@ def star(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
     '''
     return radial_out(nr_nodes - 1, 1, radius, offset_angle, direction)
 
+# def ring(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
+#     '''
+#     Return a list of positions where all nodes are on a ring or circle around the origin with the given radius. The nodes are all equally distant from each other.
+#     The offset_angle is the angle (in radians) that the first node makes with the x-axis.
+#     '''
+    
+#     pos = radial_out(nr_rays = nr_nodes, nodes_per_ray = 1, node_dist = radius, offset_angle = offset_angle, direction = direction)
+    
+#     return pos[1:]
+
 def ring(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
     '''
     Return a list of positions where all nodes are on a ring or circle around the origin with the given radius. The nodes are all equally distant from each other.
     The offset_angle is the angle (in radians) that the first node makes with the x-axis.
     '''
-    
-    pos = radial_out(nr_rays = nr_nodes, nodes_per_ray = 1, node_dist = radius, offset_angle = offset_angle, direction = direction)
-    
-    return pos[1:]
+    return ellipse(nr_nodes = nr_nodes, a = radius, b = radius, offset_angle = offset_angle, direction = direction)
 
 def circle(nr_nodes, radius = 1, offset_angle = 0, direction = 'clockwise'):
     '''

@@ -239,6 +239,8 @@ def bitvector_from_neighbourhood(nr_qubits, index, neighbourhood):
     vector[nr_qubits:] += _array([int(1) if i in neighbourhood else int(0) for i in range(nr_qubits)]).reshape((1,-1)).T
     
     return vector % 2
+
+
 # def apply_complementations(state, local_complementations_list):
 #     '''
 #     Apply local complementations on the state for each node in the list of complementations.

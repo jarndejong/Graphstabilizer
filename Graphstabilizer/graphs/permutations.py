@@ -71,8 +71,10 @@ def obtain_isomorphic_graph_identifiers_and_permutations(graphstate):
 
 def obtain_automorphism_permutations(graphstate):
     '''
+    Obtain the permutations of a graphstate that leave in invariant - 
+    the subgroup of the permutation group that leaves the graphstate invariant.
     '''
-    nr_nodes = graphstate.nr_nodes
+    nr_nodes = graphstate.nr_nodess
     edgelist = graphstate.get_edgelist()
     
     automorphisms = []

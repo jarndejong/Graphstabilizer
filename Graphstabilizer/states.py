@@ -5,14 +5,14 @@
 from Graphstabilizer.checkers.elementary import check_is_Boolvar, check_is_node_index
 
 from Graphstabilizer.binary.Paulistrings import bit_to_string
-from Graphstabilizer.graphs.elementary import bitvector_from_neighbourhood
+from Graphstabilizer.graphs.elementary import bitvector_from_neighbourhood, get_AdjacencyMatrix_from_edgelist
 # from Graphstabilizer.graphs.graphstyles import blackonwhite
 #%% Graph state class
 class Graphstate:
     '''
     Class representing a graph state.
     
-    Initialize a graph state from an adjacency matrix, a stabilizer state or a networkXgraph.
+    Initialize a graph state from an adjacency matrix, a stabilizer state or a edgelist.
     '''
     ### Init and string functions
     # from Graphstabilizer.checkers.elementary import check_is_naturalnr, check_is_node_index, check_is_Boolvar
@@ -31,9 +31,9 @@ class Graphstate:
             self.init_from_adjacency_matrix(graph)
         elif type(graph) is StabilizerState:
             self.init_from_stabilizer_state(graph)
-        # elif type(graph) is nxgraph:
-        #     self.init_from_networkx_graph(graph)
-        else: raise ValueError(f"Please provide either an adjacency matrix, a STabilizerState or a networkXgraph. This was provided instead: {type(graph)}")
+        elif type(graph) is list:
+            self.init_from_edgelist(graph)
+        else: raise ValueError(f"Please provide either an adjacency matrix, a stabilizerstate or an edgelist. This was provided instead: {type(graph)}")
         
         
     
@@ -77,6 +77,14 @@ class Graphstate:
         Placeholder for function to initialize a graph state from a stabilizer state.
         '''
         pass
+    
+    def init_from_edgelist(self, edgelist):
+        '''
+        Init from an edgelist.
+        '''
+        nr_qubits = max([qub for edge in edgelist for qub in edge])
+        
+        self.init_from_adjacency_matrix(get_AdjacencyMatrix_from_edgelist(nr_qubits, edgelist))
     
     #%% Graph operation methods
     def local_complement(self, node: int):
@@ -179,6 +187,8 @@ class Graphstate:
         # Check validity of input
         node1_index = self.__handle_nodeindex_param(node1)
         node2_index = self.__handle_nodeindex_param(node2)
+        
+        # Check if node 1 is in neighbourhood of node2 which is unambiguous.
         return node1_index in self.get_neighbourhood(node2_index)
     
     @property
@@ -327,14 +337,16 @@ class Graphstate:
         merged_nodes = list(merged_nodes)
         merged_nodes.sort()
         
+        # Choose the node that will be left over if none is chosen.
         if leftover_node is None:
             leftover_node = merged_nodes[0]
-        # leftover_index = merged_nodes.index(leftover_node)
         
+        # Check if the leftover node is actually in the set that will be merged
         if leftover_node not in merged_nodes:
             raise ValueError(f"Leftover node {leftover_node} not in merged nodes collection {merged_nodes}")
         
-        # Get the nodes to connect the leftover node to
+        # Get the nodes to connect the leftover/merged node to. 
+        # These are all the nodes connected to at least one node in the merged set.
         neighbourhood = []
         for node in merged_nodes:
             neighbourhood.extend(self.get_neighbourhood(node))
@@ -373,14 +385,14 @@ class Graphstate:
         
         # If basis is 'I' perform no measurement
         if basis == 'I':
-            return
+            pass
         elif basis == 'Z':
             self.Z_measurement(node = node_index, deletion = deletion)
         elif basis == 'Y':
             self.Y_measurement(node = node_index, deletion = deletion)
         elif basis == 'X':
             self.X_measurement(node = node_index, deletion = deletion)
-        return
+        
     
     def Z_measurement(self, node, deletion = True):
         '''
@@ -452,6 +464,18 @@ class Graphstate:
             raise TypeError(f"Can't find the node labeled {node} because it's not a string or int.")
         return node_index
     
-    
+    #%% Returning other graphs
+    def complementary_graph(self):
+        '''
+        Return a new graphstate which is the complementary graph of the given graphstate. 
+        The complementary graph of a graph G is the graph with edgeset exactly opposite from G.
+        '''
+        from itertools import combinations
+        new_edgeset = [k for k in combinations(range(self.size), 2) if not self.contains_edge(k[0], k[1])]
+        
+        return Graphstate(get_AdjacencyMatrix_from_edgelist(self.nr_qubits, new_edgeset))
+
+
+#%% Stabiliserstate class
 class StabilizerState:
     pass

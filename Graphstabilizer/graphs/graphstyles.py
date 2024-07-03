@@ -313,7 +313,7 @@ class GraphStyle:
         assert len(node_colors) == len(indices), f"{len(node_colors)} colors provided but {len(indices)} indices provided."
         
         for node, color in zip(indices, node_colors):
-            assert isinstance(color, (str, tuple)), f"Color {color} for node {node} is of type {type(color)}, not list or tup."
+            assert isinstance(color, (str, tuple)), f"Color {color} for node {node} is of type {type(color)}, not str or tup."
             self.set_node_color(node, color)
     # Labels
     def turn_on_labels(self):

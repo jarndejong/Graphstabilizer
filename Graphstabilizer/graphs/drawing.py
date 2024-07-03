@@ -322,15 +322,26 @@ def draw_node(position, nodestyle, label, axis):
     axis.add_patch(circle)
     
     # Make the label if the graphstyle wants it
+    # if nodestyle['with_labels']:
+    #     axis.text(x = position[0] + nodestyle['label_xoffset'], y = position[1] + nodestyle['label_yoffset'], 
+    #               s = label, 
+    #               fontsize = nodestyle['label_fontsize'],
+    #               fontname = nodestyle['label_fontname'],
+    #               ha="center",
+    #               va="center_baseline", 
+    #               usetex = nodestyle['tex_for_labels'], 
+    #               color = nodestyle['label_color'])
+    
     if nodestyle['with_labels']:
-        axis.text(x = position[0] + nodestyle['label_xoffset'], y = position[1] + nodestyle['label_yoffset'], 
-                  s = label, 
-                  fontsize = nodestyle['label_fontsize'],
-                  fontname = nodestyle['label_fontname'],
-                  ha="center",
-                  va="center_baseline", 
-                  usetex = nodestyle['tex_for_labels'], 
-                  color = nodestyle['label_color'])
+        axis.annotate(text = label,
+                      xy = (0.5 + nodestyle['label_xoffset'] , 0.5 + nodestyle['label_yoffset']),
+                      xycoords = circle,
+                      fontsize = nodestyle['label_fontsize'],
+                      fontname = nodestyle['label_fontname'],
+                      ha="center",
+                      va="center_baseline", 
+                      usetex = nodestyle['tex_for_labels'], 
+                      color = nodestyle['label_color'])
     
 #%% Edges
 def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None):
@@ -465,6 +476,7 @@ def draw_path_around_nodes(Graphstyle, node_selection: list, axis):
     '''
     Draw a patch around a selection of nodes in the graphstate.
     '''
+
     # Get the nodes' positions and radii.
     selection_positions = Graphstyle.get_node_positions(node_selection)
     
@@ -476,9 +488,33 @@ def draw_path_around_nodes(Graphstyle, node_selection: list, axis):
     extreme_nodes_positions = [selection_positions[index] for index in extreme_nodes_indices]
     extreme_nodes_radii = [selection_radii[index] for index in extreme_nodes_indices]
     
-    # Draw the contour
-    _draw_contour(Graphstyle.patch_style, extreme_nodes_positions, extreme_nodes_radii, axis)
+    if len(extreme_nodes_positions) == 1:
+        _draw_contour_around_node(Graphstyle.patch_style, extreme_nodes_positions[0], extreme_nodes_radii[0], axis)
+    else:
+        # Draw the contour
+        _draw_contour(Graphstyle.patch_style, extreme_nodes_positions, extreme_nodes_radii, axis)
     
+def _draw_contour_around_node(patch_style, node_position, node_radius, axis):
+    '''
+    Draw a patch around a single node, which is just a circle around the node.
+    '''
+    
+    radius = patch_style['tightness']*node_radius + patch_style['padding']
+    
+    # Make a circle at the node position
+    circle = Circle(node_position, 
+                    radius = radius, 
+                    alpha = patch_style['face_alpha'],
+                    facecolor = patch_style['face_color'],
+                    linewidth = patch_style['edge_width'],
+                    edgecolor = patch_style['edge_color'],
+                    linestyle = patch_style['edge_style']
+                    )
+    
+    # Add the node to the axis
+    axis.add_patch(circle)
+    
+
     
 
 def _draw_contour(patch_style, node_positions, radii, axis):

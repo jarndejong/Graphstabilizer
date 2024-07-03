@@ -10,7 +10,7 @@ from numpy import matrix as _npmatrix, zeros as _npzeros, ones as _npones, eye a
 
 
 ## Local imports
-from Graphstabilizer.graphs.elementary import AdjacencyMatrix as _AdjacencyMatrix
+from Graphstabilizer.graphs.elementary import AdjacencyMatrix as _AdjacencyMatrix, get_AdjacencyMatrix_from_edgelist as _get_AdjacencyMatrix_from_edgelist
 
     
 #%%
@@ -105,7 +105,7 @@ def tree(nr_layers, branch_factor = 2):
     Get the adjacency matrix for a tree with nr_layers and a given branching factor. 
     The lowest layer will have 
     '''
-    
+    raise ValueError("This function imports networkx, should be removed")
     from networkx import balanced_tree
     
     
@@ -123,6 +123,7 @@ def radial_out(nr_rays, nodes_per_ray):
     edges = []
     
     # Loop through every ray
+    nr_qubits = 1
     for ray_nr in range(nr_rays):
         # Loop through all the nodes in this ray. for the k-th ray (starting at 0), 
         # the first node is indexed by k*nodes_per_ray + 1, and the last is (k+1)*nodes_per_ray
@@ -130,13 +131,10 @@ def radial_out(nr_rays, nodes_per_ray):
         edges.append((0,nodes_this_ray[0]))
         for node_nr in range(nodes_per_ray - 1):
             edges.append((nodes_this_ray[node_nr],nodes_this_ray[node_nr+1]))
+            
+        nr_qubits = max([max(edge[0], edge[1]) for edge in edges]) + 1
     
-    
-    nxG = _nxGraph()
-    
-    nxG.add_edges_from([(edge[0],edge[1]) for edge in edges])
-    
-    return _AdjacencyMatrix(nxG)
+    return _get_AdjacencyMatrix_from_edgelist(nr_qubits, edges)
 
 
 def star(nr_nodes):
