@@ -40,6 +40,7 @@ def calculate_axes_limits(Graphstyle):
     # Check if the node radius is defined for all nodes equally or for every node separately
     nodesstyle = Graphstyle.nodes_style
     
+
     
     noderadii = [
         [nodesstyle[xleft]['node_radius'], nodesstyle[xright]['node_radius']],
@@ -62,14 +63,19 @@ def calculate_axes_limits(Graphstyle):
                             Graphstyle.figure_style['figure_tightness']*d
                             )
                         )
-        
+    
+    # If the offsets should be equal, that means that the offset in EVERY direction is equal
     if Graphstyle.figure_style['figure_offsetequal']:
         offsets = [[max(max(offsets[0]), max(offsets[1]))] * 2] * 2
+
+    # These will be the actual axes limits
     lims = [] 
     
+    # If no figure ratio is provided, just add the offsets to the extreme coordinates
     if Graphstyle.figure_style['figure_ratio'] is None:
         for coor, offset in zip(minmaxes, offsets):
             lims.append([coor[0] - offset[0], coor[1] + offset[1]])
+    # Now we need to make sure that the ratio is fixed.
     else:
         x0, x1 = minmaxes[0][0] - offsets[0][0], minmaxes[0][1] + offsets[0][1]
         y0, y1 = minmaxes[1][0] - offsets[1][0], minmaxes[1][1] + offsets[1][1]
@@ -79,9 +85,6 @@ def calculate_axes_limits(Graphstyle):
         xr, yr = (x0 + x1 )/2, (y0 + y1)/2
         
         current_r = dx/dy
-        
-        # from numpy import argmax as _argmax
-        # longest_side = _argmax((x1 - x0, y1 - y0))
         
         if Graphstyle.figure_style['figure_ratio'] >= current_r:
             x0, x1 = xr - Graphstyle.figure_style['figure_ratio']*dy/2, xr + Graphstyle.figure_style['figure_ratio']*dy/2
@@ -96,12 +99,16 @@ def calculate_axes_limits(Graphstyle):
 #%% Preparation    
 def prepare_graphstatedrawing(Graphstyle):
     '''
-    Prepare a Graphstate figure.
-    Return a figure and an axis object
+    Prepare a Graphstate figure from a graphstyle object
+    Return a figure and an axis object.
     '''
+
+    figure_multiplier = Graphstyle.figure_style['figure_multiplier']
+
     # If no axislimits are given, calculate them
     axislimits = Graphstyle.figure_style['axes_limits']
-    
+
+
     if axislimits is None:
         axislimits = calculate_axes_limits(Graphstyle)
 
@@ -109,8 +116,8 @@ def prepare_graphstatedrawing(Graphstyle):
     xlim, ylim = axislimits[0], axislimits[1]
     
     # Make figure
-    fig = figure(figsize = (Graphstyle.figure_style['figure_multiplier']*(xlim[1] - xlim[0]), 
-                            Graphstyle.figure_style['figure_multiplier']*(ylim[1] - ylim[0]))
+    fig = figure(figsize = (figure_multiplier*(xlim[1] - xlim[0]), 
+                            figure_multiplier*(ylim[1] - ylim[0]))
                  )
     
     # Add the axis and set the params
@@ -290,7 +297,7 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
         
 
 #%% Nodes
-def draw_nodes(Graphstyle, axis):
+def draw_nodes(Graphstyle, axis, zorder = None):
     '''
     Draw the nodes of the Graphstate in the given axis.
     The graphstyle is either a dictionary for instructions on how to draw the nodes, or a list of dictionaries on how to draw every node separately.
@@ -305,9 +312,9 @@ def draw_nodes(Graphstyle, axis):
     
     # Plot every node iteratively
     for node_index, position in enumerate(Graphstyle.node_positions):
-        draw_node(position, nodesstyle[node_index], labels[node_index], axis)
+        draw_node(position, nodesstyle[node_index], labels[node_index], axis, zorder, figure_multiplier = Graphstyle.figure_style['figure_multiplier'])
 
-def draw_node(position, nodestyle, label, axis):
+def draw_node(position, nodestyle, label, axis, zorder, figure_multiplier):
     '''
     Draw a single node given by the node axis.
     '''
@@ -316,35 +323,27 @@ def draw_node(position, nodestyle, label, axis):
                     facecolor = nodestyle['node_color'], 
                     edgecolor = nodestyle['node_edgecolor'],
                     linewidth = nodestyle['node_edgewidth'],
-                    linestyle = nodestyle['node_edgestyle'])
+                    linestyle = nodestyle['node_edgestyle'],
+                    zorder = zorder)
     
     # Add the node to the axis
     axis.add_patch(circle)
     
     # Make the label if the graphstyle wants it
-    # if nodestyle['with_labels']:
-    #     axis.text(x = position[0] + nodestyle['label_xoffset'], y = position[1] + nodestyle['label_yoffset'], 
-    #               s = label, 
-    #               fontsize = nodestyle['label_fontsize'],
-    #               fontname = nodestyle['label_fontname'],
-    #               ha="center",
-    #               va="center_baseline", 
-    #               usetex = nodestyle['tex_for_labels'], 
-    #               color = nodestyle['label_color'])
-    
     if nodestyle['with_labels']:
         axis.annotate(text = label,
                       xy = (0.5 + nodestyle['label_xoffset'] , 0.5 + nodestyle['label_yoffset']),
                       xycoords = circle,
-                      fontsize = nodestyle['label_fontsize'],
+                      fontsize = 5*nodestyle['node_radius']*figure_multiplier*nodestyle['label_fontsize'],
                       fontname = nodestyle['label_fontname'],
                       ha="center",
                       va="center_baseline", 
                       usetex = nodestyle['tex_for_labels'], 
-                      color = nodestyle['label_color'])
+                      color = nodestyle['label_color'],
+                      zorder = zorder)
     
 #%% Edges
-def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None):
+def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None, zorder = None):
     '''
     Draw the edges of the Graphstate in the given axis.
     The edgesmap is a list with an edgemap instruction for every edge.
@@ -362,21 +361,21 @@ def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None):
             flip = True
             # Now loop through all edges
             for edge in Graphstate.get_edges():
-                flip = __draw_edge(Graphstyle, axis, edge, arcflip = flip, max_node_radius=max(Graphstyle.get_nodes_radii()))
+                flip = __draw_edge(Graphstyle, axis, edge, arcflip = flip, max_node_radius=max(Graphstyle.get_nodes_radii()), zorder = zorder)
         else:
             for edge, edgemap in zip(Graphstate.get_edges(), edgesmap):
-                __draw_edge(Graphstyle, axis, edge, edgemap)
+                __draw_edge(Graphstyle, axis, edge, edgemap, zorder = zorder)
                 
     elif isinstance(edgestyle, list):
         assert len(edgestyle) == len(Graphstate.get_edges()), f"Graph style has instructions for {len(edgestyle)} edges but graphstate has {len(Graphstate.get_edges())} edges."
         flip = True
         for edge_index, edge in enumerate(Graphstate.get_edges()):
             if edgesmap is None:
-                flip = __draw_edge(Graphstyle, axis, edgestyle[edge_index], edge, arcflip = flip)
+                flip = __draw_edge(Graphstyle, axis, edgestyle[edge_index], edge, arcflip = flip, zorder = zorder)
             else:
-                __draw_edge(Graphstyle, axis, edgestyle[edge_index], edge, edgemap[edge_index])
+                __draw_edge(Graphstyle, axis, edgestyle[edge_index], edge, edgemap[edge_index], zorder = zorder)
 
-def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node_radius = 0.1):
+def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node_radius = 0.1, zorder = None):
     '''
     Draw the edge for the given Graphstate and fiven edgemap. If edgemap is 
     '''
@@ -418,7 +417,7 @@ def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node
             p1,p2 = x1 + (r1 + edgestyle['edge_offset'])*phat, x2 - (r2 + edgestyle['edge_offset'])*phat
             
             # Plot the line
-            axis.plot([p1[0,0], p2[0,0]], [p1[1,0],p2[1,0]], color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])
+            axis.plot([p1[0,0], p2[0,0]], [p1[1,0],p2[1,0]], color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'], zorder = zorder)
             
         # If the previous if statement doesn't hit, we make an arced edge   
         else:
@@ -445,11 +444,11 @@ def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node
                     # print(f"Arc does not intersect for {theta1},{theta2} and {max_node_radius} with {xr},{yr} as midpoint of circle {r}")
                     # Make the edge with the current circle params of the arc if the if statement passes
                     arc = Arc((xr,yr), width = 2*r, height = 2*r, 
-                                        theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])
+                                        theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'], zorder = zorder)
                     # Break out of the loop because we found a valid angle
                     arcflip = not direction
                     break
-            
+
             # If no edge was defined it means we can't find a proper arc that doesn't intersect. Then just do a small one.
             if arc is None:
                 print("Warning, no arc could be found that doesn't intersect with at least one node. Resorting to angle = 15 degree.")
@@ -458,7 +457,7 @@ def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node
                                                                       Graphstyle.node_positions[edge[1]], angle=((-1)**arcflip * 15), 
                                                                       offset = edgestyle['edge_offset'], node_radii = (r1,r2), crossing_radius = max_node_radius)
                 arc = Arc((xr,yr), width = 2*r, height = 2*r, 
-                                    theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'])    
+                                    theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'], zorder = zorder)    
             # Plot the edge, flip the arc direction
             arcflip = not arcflip
             axis.add_patch(arc)
@@ -472,7 +471,7 @@ def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node
 # def plot_straight_edge(Graphstate, axis, graphsyle, edge)
 
 #%% Hulls/collections of nodes
-def draw_path_around_nodes(Graphstyle, node_selection: list, axis):
+def draw_path_around_nodes(Graphstyle, node_selection: list, axis, include_radius = True, zorder = None):
     '''
     Draw a patch around a selection of nodes in the graphstate.
     '''
@@ -482,19 +481,25 @@ def draw_path_around_nodes(Graphstyle, node_selection: list, axis):
     
     selection_radii = Graphstyle.get_nodes_radii(node_selection)
     
+    # if not include_radius:
+    #     selection_radii = [0.001]*len(selection_positions)
+    
     # Obtain the extreme nodes of the hull, i.e. those nodes around which the patch is gonna be drawn.
     extreme_nodes_indices = _get_indices_extreme_nodes_hull(selection_positions, selection_radii)
     
     extreme_nodes_positions = [selection_positions[index] for index in extreme_nodes_indices]
     extreme_nodes_radii = [selection_radii[index] for index in extreme_nodes_indices]
     
+    if not include_radius:
+        extreme_nodes_radii = [0.001]*len(extreme_nodes_positions)
+    
     if len(extreme_nodes_positions) == 1:
-        _draw_contour_around_node(Graphstyle.patch_style, extreme_nodes_positions[0], extreme_nodes_radii[0], axis)
+        _draw_contour_around_node(Graphstyle.patch_style, extreme_nodes_positions[0], extreme_nodes_radii[0], axis, zorder)
     else:
         # Draw the contour
-        _draw_contour(Graphstyle.patch_style, extreme_nodes_positions, extreme_nodes_radii, axis)
+        _draw_contour(Graphstyle.patch_style, extreme_nodes_positions, extreme_nodes_radii, axis, zorder)
     
-def _draw_contour_around_node(patch_style, node_position, node_radius, axis):
+def _draw_contour_around_node(patch_style, node_position, node_radius, axis, zorder):
     '''
     Draw a patch around a single node, which is just a circle around the node.
     '''
@@ -508,7 +513,8 @@ def _draw_contour_around_node(patch_style, node_position, node_radius, axis):
                     facecolor = patch_style['face_color'],
                     linewidth = patch_style['edge_width'],
                     edgecolor = patch_style['edge_color'],
-                    linestyle = patch_style['edge_style']
+                    linestyle = patch_style['edge_style'],
+                    zorder = zorder
                     )
     
     # Add the node to the axis
@@ -517,7 +523,7 @@ def _draw_contour_around_node(patch_style, node_position, node_radius, axis):
 
     
 
-def _draw_contour(patch_style, node_positions, radii, axis):
+def _draw_contour(patch_style, node_positions, radii, axis, zorder):
     '''
     Draw a contour/hull/patch around the given nodes, in order of the list that they're provided.
     '''
@@ -609,7 +615,8 @@ def _draw_contour(patch_style, node_positions, radii, axis):
               facecolor = patch_style['face_color'],
               linewidth = patch_style['edge_width'],
               edgecolor = patch_style['edge_color'],
-              linestyle = patch_style['edge_style']
+              linestyle = patch_style['edge_style'],
+              zorder = zorder
               )
     
     return contourpoints

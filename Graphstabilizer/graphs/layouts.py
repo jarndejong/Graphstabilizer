@@ -131,7 +131,7 @@ def cut_ring(nr_nodes, radius = 1, nr_holes = 1, start_of_cut_angle = 0, directi
     '''
     Return a list of positions where all nodes are on a ring or circle around the origin with the given radius.
     '''
-    pos = ring(nr_nodes + nr_holes, offset_angle = start_of_cut_angle, direction = direction)
+    pos = ring(nr_nodes + nr_holes, radius = radius, offset_angle = start_of_cut_angle, direction = direction)
     
     return pos[nr_holes:]
 

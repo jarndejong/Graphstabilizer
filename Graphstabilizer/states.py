@@ -87,17 +87,29 @@ class Graphstate:
         self.init_from_adjacency_matrix(get_AdjacencyMatrix_from_edgelist(nr_qubits, edgelist))
     
     #%% Graph operation methods
-    def local_complement(self, node: int):
+    def local_complement(self, nodes: int | list):
         '''
-        Locally complement the graph (state) on the given node. Updates the object instance with the new graph.
+        Locally complement the graph (state) on the given node or nodes. Updates the object instance with the new graph. If multiple nodes are provided the local complementations are performed from first to last.
         '''
-        # Check validity of input
         from Graphstabilizer.graphs.elementary import local_complementation
-        node_index = self.__handle_nodeindex_param(node)
+
+        if isinstance(nodes, int):
+            nodes = [nodes]
         
-        self.adj = local_complementation(self.adj, node_index)
+        for node in nodes:
+            # Check validity of input
+            node_index = self.__handle_nodeindex_param(node)
+            
+            self.adj = local_complementation(self.adj, node_index)
     
-    def add_edge(self, node1, node2):
+    def add_edges(self, edges: list | tuple):
+        '''
+        Add the edges given in the list of edges
+        '''
+        for edge in edges:
+            self.add_edge(edge[0], edge[1])
+
+    def add_edge(self, node1: int, node2: int):
         '''
         Add an edge between the two given nodes. Performs nothing if the edge is already there.
         '''
@@ -107,7 +119,14 @@ class Graphstate:
         
         self.adj.add_edge(node1_index, node2_index)
     
-    def remove_edge(self, node1, node2):
+    def remove_edges(self, edges: list | tuple):
+        '''
+        Remove the edges given in the list of edges
+        '''
+        for edge in edges:
+            self.remove_edge(edge[0], edge[1])
+
+    def remove_edge(self, node1: int, node2: int):
         '''
         Remove an edge between the two given nodes. Performs nothing if the edge wasn't there.
         '''
@@ -117,7 +136,14 @@ class Graphstate:
         
         self.adj.remove_edge(node1_index, node2_index)
     
-    def flip_edge(self, node1, node2):
+    def flip_edges(self, edges: list | tuple):
+            '''
+            Flip the edges given in the list of edges
+            '''
+            for edge in edges:
+                self.flip_edge(edge[0], edge[1])
+
+    def flip_edge(self, node1: int, node2: int):
         '''
         Remove an edge between the two given nodes. Performs nothing if the edge wasn't there.
         '''
@@ -127,7 +153,7 @@ class Graphstate:
         
         self.adj.flip_edge(node1_index, node2_index)
     
-    def CZ(self, node1, node2):
+    def CZ(self, node1: int, node2: int):
         '''
         Perform a CZ gate between the two given nodes. Equivalent to self.flip_edge(node1, node2)
         '''
@@ -135,7 +161,7 @@ class Graphstate:
         
         
     #%% Info functions    
-    def get_neighbourhood(self, node):
+    def get_neighbourhood(self, node: int):
         '''
         Return a list of the neighbours of a node.
         Returns empty list if the node has no neighbours.
@@ -180,7 +206,7 @@ class Graphstate:
         '''
         return self.nr_qubits
     
-    def contains_edge(self, node1, node2):
+    def contains_edge(self, node1: int, node2: int):
         '''
         Returns True if there is an edge between the two nodes, returns false otherwise.
         '''

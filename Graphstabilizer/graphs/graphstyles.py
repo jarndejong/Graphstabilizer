@@ -307,13 +307,28 @@ class GraphStyle:
         if indices is None:
             indices = list(range(self.nr_nodes))
 
+        # If a list of 3 or 4 floats is provided, it's a colour, and not a list of colours.
+        # So it should be converted to a tuple
+        if isinstance(node_colors, list) and len(node_colors) in [3,4]:
+            if isinstance(node_colors[0], (float, int)):
+                # node_colors is now a single color, convert to tuple
+                node_colors = tuple(node_colors)
+        
+        # If node_colors is not a list, its a single color and all indices should be mapped to this color. So convert to a list of the same length
         if not isinstance(node_colors, list):
             node_colors = [node_colors]*len(indices)
             
         assert len(node_colors) == len(indices), f"{len(node_colors)} colors provided but {len(indices)} indices provided."
         
         for node, color in zip(indices, node_colors):
+            # if the color is a list (again), node_colors was a list of lists. So we can safely convert the color to tuple
+            if isinstance(color, list):
+                color = tuple(color)
+            
+            # Now check if the color is a str or tuple.
             assert isinstance(color, (str, tuple)), f"Color {color} for node {node} is of type {type(color)}, not str or tup."
+
+            # Set the node color
             self.set_node_color(node, color)
     # Labels
     def turn_on_labels(self):

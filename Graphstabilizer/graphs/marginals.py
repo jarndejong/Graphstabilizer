@@ -947,8 +947,22 @@ class MetaGraphThree:
 #         # G = Graphstate(graph = adj, node_labels = labels, node_positions = pos, graphstyle = Graphstyletemplate)
         
 #         return G, {'Na' : Na, 'Nb' : Nb, 'Nc' : Nc, 'Nab' : Nab, 'Nac' : Nac, 'Nbc' : Nbc, 'Nabc' : Nabc, }
-    
 
+#%% General
+def marginals_per_dimension(graphstate: Graphstate, marginalsize: int) -> list:
+    '''
+    For a given marginal size, return a list containing all marginals ordered per dimension, where the first element is a list of all marginals with dimension 0, the second element is a list of all marginals with dimension 1 etc.
+    '''    
+    assert marginalsize < graphstate.nr_qubits, f"There are no {marginalsize}-marginals for a state with {graphstate.nr_qubits} qubits."
+
+    # Init empty list
+    marginals_per_dimension = [[] for k in range(0, marginalsize + 1)]
+
+    # Loop through every possible marginal selection, add 1 to the given rank counter.
+    for marginal in combinations(iterable = range(graphstate.nr_qubits), r = marginalsize):
+        marginals_per_dimension[marginal_dimension(graphstate, marginal)].append(marginal)
+
+    return marginals_per_dimension
 #%% Lists
 def marginal_dimensiondict(graphstate: Graphstate, marginalsize: int) -> dict:
     '''
@@ -1004,7 +1018,7 @@ def marginal_dimensionlistandsum(graphstate: Graphstate, marginalsize: int) -> t
 #%% Tensors
 def marginal_tensor(graphstate: Graphstate, marginalsize: int, inv: str  = 'marginal_rank') -> ndarray:
     '''
-    For a marginal size m, obtain the m-fold tensor with n 
+    For a marginal size m, obtain the m-fold tensor with n TODO
     '''
     
     assert marginalsize < graphstate.nr_qubits, f"There are no {marginalsize}-marginals for a state with {graphstate.nr_qubits} qubits."
@@ -1072,7 +1086,7 @@ def metagraph_tensor(graphstate: Graphstate, metagraphgroups, indexing) -> ndarr
 
 def marginal_tensor_product(graphstate: Graphstate, marginalsize: int) -> float:
     '''
-    
+    TODO
     '''
     T = marginal_tensor(graphstate, marginalsize)
     
