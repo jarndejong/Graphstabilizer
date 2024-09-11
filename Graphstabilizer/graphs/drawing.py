@@ -90,10 +90,10 @@ def calculate_axes_limits(Graphstyle):
             x0, x1 = xr - Graphstyle.figure_style['figure_ratio']*dy/2, xr + Graphstyle.figure_style['figure_ratio']*dy/2
 
         elif Graphstyle.figure_style['figure_ratio'] < current_r:
-            y0, y1 = yr - dx/(2*Graphstyle.figure_style['figure_ratio']), dx/(2*Graphstyle.figure_style['figure_ratio'])
+            y0, y1 = yr - dx/(2*Graphstyle.figure_style['figure_ratio']), yr + dx/(2*Graphstyle.figure_style['figure_ratio'])
         
         lims = [[x0, x1], [y0,y1]]
-    
+
     return lims
 
 #%% Preparation    
@@ -167,10 +167,8 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
         nr_columns = ceil(nr_drawings**(1/2))
         nr_rows = ceil(nr_drawings/nr_columns)
     elif nr_rows is None:
-        print(nr_columns)
         from math import ceil
         nr_rows = ceil(nr_drawings/nr_columns)
-        print(nr_rows)
     elif nr_columns is None:
         from math import ceil
         nr_columns = ceil(nr_drawings/nr_rows)
@@ -194,10 +192,6 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
     
         
     fig.patch.set_facecolor(background_color)
-    
-    
-    
-    
     
     
     if gridspec_mapping is None:
@@ -267,13 +261,12 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
     else:
         axesdict = fig.subplot_mosaic(gridspec_mapping)
         
-        
         # This assumes that axes are labelled "A", "B", .... Will fail otherwise
         axes = [axesdict[chr(65 + i)] for i in range(len(axesdict.keys()))]
-        
+
         if len(axes) != len(Graphstyles):
             raise ValueError(f"gridspec_mapping specifies {len(axes)} subplots but {len(Graphstyles)} graphstyles are provided.")
-        
+
         for ax, graphstyle in zip(axes, Graphstyles):
             # If no axislimits are given, calculate them
             axeslimits = graphstyle.figure_style['axes_limits']
@@ -284,7 +277,6 @@ def prepare_multiple_graphstatedrawing(Graphstyles: list, nr_rows = None, nr_col
 
             # Unpack the axis limits
             xlim, ylim = axeslimits[0], axeslimits[1]
-            print(xlim, ylim)
             ax.set(xlim=xlim, ylim=ylim, aspect=1)
             # ax.set(aspect=1)
             ax.axis('off')
@@ -324,6 +316,7 @@ def draw_node(position, nodestyle, label, axis, zorder, figure_multiplier):
                     edgecolor = nodestyle['node_edgecolor'],
                     linewidth = nodestyle['node_edgewidth'],
                     linestyle = nodestyle['node_edgestyle'],
+                    clip_on = False,
                     zorder = zorder)
     
     # Add the node to the axis
@@ -358,7 +351,7 @@ def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None, zorder = None):
     if isinstance(edgestyle, dict):
         if edgesmap is None:
             # Init an arc direction so that the arc directions can get flipped (from positive to negative angle)
-            flip = True
+            flip = False
             # Now loop through all edges
             for edge in Graphstate.get_edges():
                 flip = __draw_edge(Graphstyle, axis, edge, arcflip = flip, max_node_radius=max(Graphstyle.get_nodes_radii()), zorder = zorder)
@@ -368,7 +361,7 @@ def draw_edges(Graphstate, Graphstyle, axis, edgesmap = None, zorder = None):
                 
     elif isinstance(edgestyle, list):
         assert len(edgestyle) == len(Graphstate.get_edges()), f"Graph style has instructions for {len(edgestyle)} edges but graphstate has {len(Graphstate.get_edges())} edges."
-        flip = True
+        flip = False
         for edge_index, edge in enumerate(Graphstate.get_edges()):
             if edgesmap is None:
                 flip = __draw_edge(Graphstyle, axis, edgestyle[edge_index], edge, arcflip = flip, zorder = zorder)
@@ -411,13 +404,7 @@ def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node
         # Check if any nodes intersect with the straight edge
         
         if not _do_nodes_intersect_straightedge(other_nodes_positions, other_nodes_radii, phat, pd, x1, Graphstyle.edge_style['nodeedgetightness'], Graphstyle.edge_style['nodeedgepadding']):
-            # Now we can plot a straight edge
-            # Calculate the two points to draw the line from and to
-            # These are the node positions adjusted by the offset given in the graphstyle, i.e. x1 and x2 plys/minus phat for the offset length
-            p1,p2 = x1 + (r1 + edgestyle['edge_offset'])*phat, x2 - (r2 + edgestyle['edge_offset'])*phat
-            
-            # Plot the line
-            axis.plot([p1[0,0], p2[0,0]], [p1[1,0],p2[1,0]], color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'], zorder = zorder)
+            _plot_straightedge(x1, x2, r1, r2, phat, edgestyle, axis, zorder)
             
         # If the previous if statement doesn't hit, we make an arced edge   
         else:
@@ -430,9 +417,7 @@ def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node
             # Loop through all angles to find an arc that doesn't intersect with any node. Also loop through both directions to flip
             from itertools import product
             for angle, direction in product([15,20,25,30,35,45], [arcflip, not arcflip]):
-                #
-                # print(f"At angle {angle}")
-                
+                #                
                 # Calculate the circle params of the arc
                 [xr, yr], r, [theta1, theta2] = _calculate_arc_params(Graphstyle.node_positions[edge[0]],
                                                                       Graphstyle.node_positions[edge[1]], angle=((-1)**direction * angle), 
@@ -446,7 +431,7 @@ def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node
                     arc = Arc((xr,yr), width = 2*r, height = 2*r, 
                                         theta1=theta1, theta2=theta2, color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'], zorder = zorder)
                     # Break out of the loop because we found a valid angle
-                    arcflip = not direction
+                    arcflip = direction
                     break
 
             # If no edge was defined it means we can't find a proper arc that doesn't intersect. Then just do a small one.
@@ -465,10 +450,15 @@ def __draw_edge(Graphstyle, axis, edge, edgemap = None, arcflip = None, max_node
     # Return the flip direction        
     return arcflip
 
-# def _plot_straightedge()
+def _plot_straightedge(x1, x2, r1, r2, phat, edgestyle, axis, zorder):
+    # Now we can plot a straight edge
+        # Calculate the two points to draw the line from and to
+        # These are the node positions adjusted by the offset given in the graphstyle, i.e. x1 and x2 plys/minus phat for the offset length
+        p1,p2 = x1 + (r1 + edgestyle['edge_offset'])*phat, x2 - (r2 + edgestyle['edge_offset'])*phat
+        
+        # Plot the line
+        axis.plot([p1[0,0], p2[0,0]], [p1[1,0],p2[1,0]], color = edgestyle['edge_color'], linewidth = edgestyle['edge_width'], zorder = zorder)
 
-#%% Edge plots
-# def plot_straight_edge(Graphstate, axis, graphsyle, edge)
 
 #%% Hulls/collections of nodes
 def draw_path_around_nodes(Graphstyle, node_selection: list, axis, include_radius = True, zorder = None):
@@ -548,9 +538,7 @@ def _draw_contour(patch_style, node_positions, radii, axis, zorder):
     for i in range(1, len(node_positions) - 1):
         # Define the base point, i.e. the location of the node
         x = matrix([[node_positions[i][0]], [node_positions[i][1]]])
-        
-        # print(f"Current node: {x}, rad = {radii[i]}")
-        
+                
         # Get the vectors from the point to the previous and next point
         to_prev = matrix([
             [node_positions[i-1][0] - node_positions[i][0]],
